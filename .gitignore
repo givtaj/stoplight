@@ -1,0 +1,8 @@
+.DS_Store
+target/
+extension/dist/
+extension/node_modules/
+extension/playwright-report/
+extension/test-results/
+extension/.vite/
+extension/src/generated/stoplight_wasm/

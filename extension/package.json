@@ -1,0 +1,22 @@
+{
+  "name": "stoplight-extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "wasm": "wasm-pack build ../crates/wasm --target web --out-dir ../../extension/src/generated/stoplight_wasm --out-name stoplight_wasm",
+    "build": "npm run wasm && vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "@playwright/test": "^1.54.2",
+    "@types/chrome": "^0.1.24",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vitest": "^3.2.4"
+  }
+}

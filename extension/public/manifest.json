@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Stoplight",
+  "version": "0.1.0",
+  "description": "Pause, inspect, edit, and continue API requests from the current tab.",
+  "minimum_chrome_version": "118",
+  "permissions": ["debugger", "sidePanel", "storage", "activeTab"],
+  "action": {
+    "default_title": "Stoplight"
+  },
+  "background": {
+    "service_worker": "assets/background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}

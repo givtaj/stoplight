@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "types": ["chrome", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "stoplight-wasm-generated": ["src/generated/stoplight_wasm/stoplight_wasm.js"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "vite.config.ts", "playwright.config.ts"]
+}
