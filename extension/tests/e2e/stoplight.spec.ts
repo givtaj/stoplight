@@ -2,10 +2,10 @@ import { expect, test } from "@playwright/test";
 
 import {
   armCurrentTabFromSidePanel,
-  continueEditedFromSidePanel,
   continueUnchangedFromSidePanel,
   launchStoplightHarness,
   playAllFromSidePanel,
+  setTextAreaValue,
   waitForServiceWorker,
   waitForText,
 } from "./support";
@@ -23,6 +23,8 @@ test.describe("Stoplight extension smoke", () => {
 
       await expect(harness.sidePanel.locator("#app")).toBeVisible();
       await expect(harness.sidePanel.locator("#arm-button")).toBeVisible();
+      await expect(harness.sidePanel.locator("#arm-target-title")).toBeVisible();
+      await expect(harness.sidePanel.locator("#request-phase")).toBeVisible();
       await expect(harness.sidePanel.locator("#play-all-button")).toBeVisible();
       await expect(harness.sidePanel.locator("#headers-editor")).toBeVisible();
       await expect(harness.sidePanel.locator("#body-editor")).toBeVisible();
@@ -39,6 +41,27 @@ test.describe("Stoplight extension smoke", () => {
 });
 
 test.describe("Stoplight extension release flows", () => {
+  test("arms the shown website target when the extension panel tab is active", async ({}, testInfo) => {
+    const harness = await launchStoplightHarness(testInfo);
+    try {
+      const { server, sidePanel, targetPage } = harness;
+
+      await targetPage.bringToFront();
+      await sidePanel.bringToFront();
+      await sidePanel.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await expect(sidePanel.locator("#arm-target-title")).toContainText("Stoplight Test");
+      await expect(sidePanel.locator("#arm-target-status")).toContainText("ready");
+
+      await sidePanel.locator("#arm-button").click();
+
+      await waitForText(sidePanel, "#status-pill", "attached");
+      await expect(sidePanel.locator("#tab-url")).toContainText(server.origin);
+      await waitForText(sidePanel, "#request-phase", "waiting");
+    } finally {
+      await harness.close();
+    }
+  });
+
   test("arms the active tab and continues an edited request", async ({}, testInfo) => {
     const harness = await launchStoplightHarness(testInfo);
     try {
@@ -47,6 +70,7 @@ test.describe("Stoplight extension release flows", () => {
       await targetPage.bringToFront();
       await armCurrentTabFromSidePanel(sidePanel, server.origin);
       await expect(sidePanel.locator("#tab-url")).toContainText(server.origin);
+      await waitForText(sidePanel, "#request-phase", "waiting");
       server.reset();
 
       await targetPage.evaluate(() => {
@@ -68,6 +92,7 @@ test.describe("Stoplight extension release flows", () => {
 
       await expect.poll(() => server.requestsSnapshot.length).toBe(0);
       await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(1);
+      await waitForText(sidePanel, "#request-phase", "held");
 
       const originalHeaders = await sidePanel.locator("#headers-editor").inputValue();
       const editedHeaders = originalHeaders.replace(
@@ -75,10 +100,11 @@ test.describe("Stoplight extension release flows", () => {
         "x-stoplight: edited",
       );
 
-      await continueEditedFromSidePanel(sidePanel, {
-        headerText: editedHeaders,
-        bodyText: JSON.stringify({ status: "edited" }),
-      });
+      await setTextAreaValue(sidePanel, "#headers-editor", editedHeaders);
+      await setTextAreaValue(sidePanel, "#body-editor", JSON.stringify({ status: "edited" }));
+      await waitForText(sidePanel, "#request-phase", "edited, held");
+      await expect(sidePanel.locator("#phase-detail")).toContainText("still held");
+      await sidePanel.locator("#continue-edited-button").click();
 
       await server.waitForRequest((request) => request.path === "/api/edit");
       const [captured] = server.requestsSnapshot;
@@ -94,7 +120,42 @@ test.describe("Stoplight extension release flows", () => {
       });
 
       await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(0);
+      await waitForText(sidePanel, "#request-phase", "forwarded");
+      await expect(sidePanel.locator("#phase-detail")).toContainText("does not prove remote receipt");
       await waitForText(sidePanel, "#diff-summary", "No request selected.");
+    } finally {
+      await harness.close();
+    }
+  });
+
+  test("detach clears a held request and shows detached phase", async ({}, testInfo) => {
+    const harness = await launchStoplightHarness(testInfo);
+    try {
+      const { server, sidePanel, targetPage } = harness;
+
+      await targetPage.bringToFront();
+      await armCurrentTabFromSidePanel(sidePanel, server.origin);
+      server.reset();
+
+      await targetPage.evaluate(() => {
+        void fetch("/api/detach", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ status: "pending" }),
+        }).catch(() => undefined);
+      });
+
+      await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(1);
+      expect(server.requestsSnapshot).toHaveLength(0);
+      await waitForText(sidePanel, "#request-phase", "held");
+
+      await sidePanel.locator("#detach-button").click();
+
+      await waitForText(sidePanel, "#status-pill", "detached");
+      await waitForText(sidePanel, "#request-phase", "detached");
+      await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(0);
     } finally {
       await harness.close();
     }

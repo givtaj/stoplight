@@ -10,9 +10,9 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## Current Snapshot
 
-- Last updated: 2026-04-18
-- Baseline observed in repo: the Rust core, WASM bridge, MV3 extension shell, side panel UI, background controller, GitHub Actions CI, and deterministic extension smoke coverage are implemented.
-- The 2026-04-18 release-proof rerun reconfirmed fmt/workspace tests, extension typecheck, Vitest, build, and the unpacked-extension smoke path.
+- Last updated: 2026-10-09
+- Baseline observed in repo: the Rust core, WASM bridge, MV3 extension shell, side panel UI, background controller, GitHub Actions CI, local demo server, and deterministic extension release-flow coverage are implemented.
+- The 2026-10-09 release-proof rerun reconfirmed fmt/workspace tests, extension typecheck, Vitest, build, and headed Chromium Playwright coverage for smoke, explicit website target arming, edited request forwarding, detach, and FIFO release.
 - Expected workflow: multiple agents may update the implementation in parallel, so keep entries short and append-only where possible.
 
 ## Done
@@ -30,11 +30,15 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 - [x] GitHub Actions CI added for Rust fmt/test and extension typecheck/unit/build.
 - [x] Release-facing docs added for setup, usage, privacy, store copy, release status, and release QA.
 - [x] Release proof reconciled to the current workspace on 2026-04-18 with local fmt/test/typecheck/Vitest/build results and the current Playwright smoke outcome.
+- [x] Side panel now shows an explicit arm target, rejects Stoplight/internal pages before debugger attach, and requires the shown target ID when arming.
+- [x] Request phase labels now distinguish waiting, held, edited-held, forwarded, detached, and error states without claiming durable receipt.
+- [x] Browser E2E coverage now proves edited request forwarding, detach clearing a held request, FIFO Play All, and arming the shown website target while the extension panel has focus.
+- [x] A local demo server and defense deck are available under `demo/` and `outputs/` for reviewer walkthroughs.
 
 ## In Progress
 
-- [ ] Browser E2E coverage for arm, pause, edit, continue, play-all, and detach flows. `npm run test:e2e` currently reports `1 passed, 2 skipped`, so automated proof still stops at the smoke path.
-- [ ] Manual Chrome acceptance on a clean Chrome profile. No acceptance artifact is present in the workspace as of 2026-04-18.
+- [ ] Browser E2E coverage for static assets, multipart inspect-only behavior, and binary handling. `npm run test:e2e` currently reports `5 passed, 2 skipped`; the skipped specs remain static asset auto-continue and multipart inspect-only.
+- [ ] Manual Chrome acceptance on a clean Chrome profile. No acceptance artifact is present in the workspace as of 2026-10-09.
 
 ## Next Up
 
@@ -42,6 +46,14 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 - [ ] Cut a `v0.1.0` release candidate after manual Chrome acceptance and screenshots are captured.
 
 ## Log
+
+### 2026-10-09
+
+- Re-ran release-relevant automated checks: `cargo fmt --all --check`, `cargo test --workspace --locked`, `npm run typecheck`, `npm test`, `npm run build`, and `npm run test:e2e`.
+- Recorded the current browser automation result as Playwright `5 passed, 2 skipped`, with passing proof for smoke, explicit website target arming while the panel is active, edited JSON forwarding, detach clearing a held request, and FIFO Play All.
+- Added explicit arm-target state and request-phase state across the shared TypeScript model, Rust reducer, controller, and side panel UI.
+- Added the `tabs` permission so Stoplight can show and validate the intended website target before arming when the extension panel has focus.
+- Created a local defense deck and preserved the existing local demo server for manual reviewer walkthroughs.
 
 ### 2026-04-18
 

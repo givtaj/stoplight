@@ -1,6 +1,6 @@
 import "./styles.css";
 
-import { EMPTY_SESSION_STATE, PORT_NAME, type PanelCommand, type RequestRecord, type SessionState, type WorkerEvent } from "../shared/types";
+import { EMPTY_SESSION_STATE, PORT_NAME, type PanelCommand, type RequestDiff, type RequestRecord, type SessionState, type WorkerEvent } from "../shared/types";
 import { normalizeOrigins, parseHeaderText, requestPathLabel } from "../shared/utils";
 import { loadStoplightWasm, type StoplightWasmApi } from "../shared/wasm";
 
@@ -37,6 +37,14 @@ appRoot.innerHTML = `
         <span id="status-pill" class="status-pill idle">idle</span>
       </div>
       <p id="tab-url" class="tab-url">Click the toolbar action on the page you want to inspect, then arm the tab.</p>
+      <div class="target-card">
+        <div>
+          <span class="metric-label">Arm target</span>
+          <strong id="arm-target-title" class="target-title">No target selected</strong>
+          <p id="arm-target-url" class="target-url">Open an http:// or https:// tab before arming Stoplight.</p>
+        </div>
+        <span id="arm-target-status" class="target-status none">none</span>
+      </div>
       <div id="banner" class="banner hidden"></div>
       <div class="status-grid">
         <div>
@@ -44,10 +52,15 @@ appRoot.innerHTML = `
           <strong id="paused-count" class="metric-value">0</strong>
         </div>
         <div>
+          <span class="metric-label">Request phase</span>
+          <strong id="request-phase" class="metric-value">idle</strong>
+        </div>
+        <div>
           <span class="metric-label">Allowlist</span>
           <strong id="allowlist-count" class="metric-value">0 origins</strong>
         </div>
       </div>
+      <p id="phase-detail" class="phase-detail">No target is armed.</p>
       <label class="editor-group">
         <span class="editor-label">Origin allowlist</span>
         <textarea id="allowlist-input" class="allowlist-input" spellcheck="false"></textarea>
@@ -105,7 +118,12 @@ const refs = {
   playAllButton: query<HTMLButtonElement>("#play-all-button"),
   tabTitle: query<HTMLElement>("#tab-title"),
   tabUrl: query<HTMLElement>("#tab-url"),
+  armTargetTitle: query<HTMLElement>("#arm-target-title"),
+  armTargetUrl: query<HTMLElement>("#arm-target-url"),
+  armTargetStatus: query<HTMLSpanElement>("#arm-target-status"),
   pausedCount: query<HTMLElement>("#paused-count"),
+  requestPhase: query<HTMLElement>("#request-phase"),
+  phaseDetail: query<HTMLElement>("#phase-detail"),
   allowlistCount: query<HTMLElement>("#allowlist-count"),
   allowlistInput: query<HTMLTextAreaElement>("#allowlist-input"),
   queueList: query<HTMLDivElement>("#queue-list"),
@@ -140,7 +158,9 @@ void loadStoplightWasm()
     showBanner(error instanceof Error ? error.message : "Failed to load the Rust/WASM core.");
   });
 
-refs.armButton.addEventListener("click", () => send({ type: "armActiveTab" }));
+refs.armButton.addEventListener("click", () =>
+  send({ type: "armActiveTab", expectedTabId: state.armTarget.tabId }),
+);
 refs.detachButton.addEventListener("click", () => send({ type: "detach" }));
 refs.saveAllowlistButton.addEventListener("click", () =>
   send({
@@ -201,6 +221,12 @@ refs.bodyEditor.addEventListener("input", () => {
   }
   ensureDraft(request).bodyText = refs.bodyEditor.value;
   renderDiff(request);
+});
+window.addEventListener("focus", () => send({ type: "requestState" }));
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    send({ type: "requestState" });
+  }
 });
 
 render();
@@ -270,10 +296,13 @@ function render(): void {
     state.tabUrl ??
     "Click the toolbar action on the page you want to inspect, then arm the tab.";
   refs.pausedCount.textContent = String(state.queue.length);
+  renderArmTarget();
+  renderRequestPhase();
   refs.allowlistCount.textContent = `${state.originAllowlist.length} origin${state.originAllowlist.length === 1 ? "" : "s"}`;
   refs.statusPill.textContent = state.debuggerStatus;
   refs.statusPill.className = `status-pill ${state.debuggerStatus}`;
 
+  refs.armButton.disabled = state.debuggerStatus === "arming";
   refs.detachButton.disabled = !state.tabId;
   refs.playAllButton.disabled = state.queue.length === 0;
 
@@ -302,6 +331,24 @@ function render(): void {
     : `<div class="empty-state">Paused API calls will appear here once the active tab is armed.</div>`;
 
   renderDetail();
+  renderRequestPhase();
+}
+
+function renderArmTarget(): void {
+  refs.armTargetTitle.textContent = state.armTarget.tabTitle ?? "No supported target";
+  refs.armTargetUrl.textContent =
+    state.armTarget.tabUrl ??
+    state.armTarget.reason ??
+    "Open an http:// or https:// tab before arming Stoplight.";
+  refs.armTargetStatus.textContent = state.armTarget.status;
+  refs.armTargetStatus.className = `target-status ${state.armTarget.status}`;
+}
+
+function renderRequestPhase(): void {
+  const phase = requestPhaseView();
+  refs.requestPhase.textContent = phase.label;
+  refs.requestPhase.className = `metric-value phase-${phase.tone}`;
+  refs.phaseDetail.textContent = phase.detail;
 }
 
 function renderDetail(): void {
@@ -339,17 +386,28 @@ function renderDetail(): void {
   refs.continueEditedButton.disabled = false;
 
   renderDiff(request);
+  renderRequestPhase();
 }
 
 function renderDiff(request: RequestRecord): void {
-  const draft = ensureDraft(request);
+  const diff = computeDraftDiff(request);
   if (!wasmApi) {
     refs.diffSummary.textContent = "WASM core is still loading.";
     return;
   }
 
+  refs.diffSummary.textContent = diff?.summary ?? "Could not compute the request diff.";
+  renderRequestPhase();
+}
+
+function computeDraftDiff(request: RequestRecord): RequestDiff | null {
+  const draft = ensureDraft(request);
+  if (!wasmApi) {
+    return null;
+  }
+
   try {
-    const diff = wasmApi.computeDiff({
+    return wasmApi.computeDiff({
       originalHeaders: request.headers,
       editedHeaders: parseHeaderText(draft.headerText),
       originalBody: request.body,
@@ -358,10 +416,99 @@ function renderDiff(request: RequestRecord): void {
         text: draft.bodyText,
       },
     });
-    refs.diffSummary.textContent = diff.summary;
-  } catch (error) {
-    refs.diffSummary.textContent =
-      error instanceof Error ? error.message : "Could not compute the request diff.";
+  } catch {
+    return null;
+  }
+}
+
+function requestPhaseView(): { label: string; detail: string; tone: string } {
+  if (state.debuggerStatus === "detached") {
+    return {
+      label: "detached",
+      detail: state.detachedReason
+        ? `Detached: ${state.detachedReason}. Re-arm a website tab to intercept again.`
+        : "Detached. Re-arm a website tab to intercept again.",
+      tone: "risk",
+    };
+  }
+
+  if (state.debuggerStatus === "error") {
+    return {
+      label: "error",
+      detail: state.lastError ?? "Debugger session failed.",
+      tone: "risk",
+    };
+  }
+
+  const selectedRequest = getSelectedRequest();
+  if (selectedRequest) {
+    const diff = computeDraftDiff(selectedRequest);
+    if (diff?.hasChanges) {
+      return {
+        label: "edited, held",
+        detail:
+          "Local edits are still held in the browser queue. Continue Edited forwards the draft; verify receipt independently when that matters.",
+        tone: "warn",
+      };
+    }
+  }
+
+  if (state.queue.length > 0) {
+    return {
+      label: "held",
+      detail:
+        "A matching request is intercepted and has not been continued from Stoplight's queue.",
+      tone: "warn",
+    };
+  }
+
+  switch (state.requestPhase) {
+    case "arming":
+      return {
+        label: "arming",
+        detail: "Attaching Chrome debugger to the selected website tab.",
+        tone: "warn",
+      };
+    case "waiting":
+      return {
+        label: "waiting",
+        detail: "Debugger is attached and waiting for a matching XHR or fetch request.",
+        tone: "ok",
+      };
+    case "forwarded":
+      return {
+        label: "forwarded",
+        detail:
+          "Stoplight forwarded the queued request. This does not prove remote receipt or durable persistence.",
+        tone: "ok",
+      };
+    case "detached":
+      return {
+        label: "detached",
+        detail: "Detached. Re-arm a website tab to intercept again.",
+        tone: "risk",
+      };
+    case "error":
+      return {
+        label: "error",
+        detail: state.lastError ?? "Debugger session failed.",
+        tone: "risk",
+      };
+    case "held":
+      return {
+        label: "held",
+        detail: "A matching request is intercepted and held in Stoplight's queue.",
+        tone: "warn",
+      };
+    case "idle":
+    default:
+      return {
+        label: "idle",
+        detail: state.armTarget.status === "ready"
+          ? "Review the shown website target, then arm Stoplight."
+          : state.armTarget.reason ?? "No supported website target is selected.",
+        tone: state.armTarget.status === "ready" ? "ok" : "muted",
+      };
   }
 }
 

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Pause, inspect, edit, and continue API requests from the current tab.",
   "minimum_chrome_version": "118",
-  "permissions": ["debugger", "sidePanel", "storage", "activeTab"],
+  "permissions": ["debugger", "sidePanel", "storage", "activeTab", "tabs"],
   "action": {
     "default_title": "Stoplight"
   },

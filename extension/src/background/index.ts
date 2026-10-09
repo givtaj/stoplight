@@ -16,6 +16,7 @@ interface PortLike {
 interface ControllerLike {
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   handleCommand(command: PanelCommand): Promise<void>;
+  refreshArmTarget(): Promise<void>;
   handleDebuggerEvent(
     source: chrome.debugger.Debuggee,
     method: string,
@@ -39,6 +40,16 @@ if (canStartBackground()) {
 
       chrome.debugger.onDetach.addListener((source, reason) => {
         void controller.handleDebuggerDetach(source, String(reason));
+      });
+
+      chrome.tabs?.onActivated?.addListener(() => {
+        void controller.refreshArmTarget();
+      });
+
+      chrome.tabs?.onUpdated?.addListener((_tabId, changeInfo, tab) => {
+        if (tab.active && (changeInfo.url || changeInfo.status === "complete")) {
+          void controller.refreshArmTarget();
+        }
       });
     })
     .catch((error) => {

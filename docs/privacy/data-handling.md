@@ -9,7 +9,7 @@ Stoplight is designed to keep its data handling local to the browser.
 Stoplight stores the following browser-local data:
 
 - The armed tab session state, including the current queue of paused requests.
-- The current tab URL and title while a session is active.
+- The shown arm target URL and title, plus the current tab URL and title while a session is active.
 - The per-origin allowlist used to decide which requests should be paused.
 - Request metadata needed to present the paused queue and continue requests.
 
@@ -25,6 +25,8 @@ Stoplight does not require its own backend service for v0.1.
 
 The extension works by attaching to the active tab through Chrome's Debugger API and using the DevTools Protocol `Fetch` and `Network` domains to pause matching outgoing requests. It does not proxy traffic through an external server.
 
+Stoplight also reads tab URL and title metadata so the side panel can show the website target before arming and reject unsupported pages such as `chrome://` URLs or Stoplight's own panel.
+
 ## Data Sharing
 
 Stoplight does not intentionally send request data to third-party services. Request metadata and request bodies stay inside the browser session unless the user continues them to the target site.
@@ -34,6 +36,7 @@ Stoplight does not intentionally send request data to third-party services. Requ
 Users can:
 
 - detach the session at any time,
+- review the website target before arming,
 - clear the extension's stored browser data,
 - remove the extension,
 - and re-arm only the tab they want to inspect.

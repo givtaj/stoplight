@@ -56,20 +56,29 @@ function createMockWasm(): StoplightWasmApi {
     },
     reduceSessionEvent(state: SessionState, event: SessionEvent) {
       switch (event.type) {
+        case "updateArmTarget":
+          return {
+            ...state,
+            armTarget: event.armTarget,
+            updatedAtMs: event.timestampMs,
+          };
         case "beginArmSession":
           return {
             ...EMPTY_SESSION_STATE,
             tabId: event.tabId,
             tabUrl: event.tabUrl,
             tabTitle: event.tabTitle,
+            armTarget: state.armTarget,
             originAllowlist: [...event.originAllowlist],
             debuggerStatus: "arming",
+            requestPhase: "arming",
             updatedAtMs: event.timestampMs,
           };
         case "armSession":
           return {
             ...state,
             debuggerStatus: "attached",
+            requestPhase: "waiting",
             updatedAtMs: event.timestampMs,
           };
         case "updateAllowlist":
@@ -82,24 +91,40 @@ function createMockWasm(): StoplightWasmApi {
           return {
             ...state,
             queue: [...state.queue.filter((request) => request.id !== event.request.id), event.request],
+            requestPhase: "held",
             updatedAtMs: event.timestampMs,
           };
-        case "continueRequest":
+        case "continueRequest": {
+          const previousQueueLength = state.queue.length;
+          const queueAfterContinue = state.queue.filter((request) => request.id !== event.requestId);
+          const removedCount = previousQueueLength - queueAfterContinue.length;
           return {
             ...state,
-            queue: state.queue.filter((request) => request.id !== event.requestId),
+            queue: queueAfterContinue,
+            requestPhase: queueAfterContinue.length ? "held" : "forwarded",
+            lastForwardedAtMs: removedCount ? event.timestampMs : state.lastForwardedAtMs,
+            forwardedRequestCount: state.forwardedRequestCount + removedCount,
             updatedAtMs: event.timestampMs,
           };
-        case "continueAll":
+        }
+        case "continueAll": {
+          const previousQueueLength = state.queue.length;
+          const queueAfterContinueAll = state.queue.filter((request) => !event.requestIds.includes(request.id));
+          const removedCount = previousQueueLength - queueAfterContinueAll.length;
           return {
             ...state,
-            queue: state.queue.filter((request) => !event.requestIds.includes(request.id)),
+            queue: queueAfterContinueAll,
+            requestPhase: queueAfterContinueAll.length ? "held" : "forwarded",
+            lastForwardedAtMs: removedCount ? event.timestampMs : state.lastForwardedAtMs,
+            forwardedRequestCount: state.forwardedRequestCount + removedCount,
             updatedAtMs: event.timestampMs,
           };
+        }
         case "debuggerDetached":
           return {
             ...state,
             debuggerStatus: "detached",
+            requestPhase: "detached",
             detachedReason: event.reason,
             queue: [],
             updatedAtMs: event.timestampMs,
@@ -108,6 +133,7 @@ function createMockWasm(): StoplightWasmApi {
           return {
             ...state,
             debuggerStatus: "error",
+            requestPhase: "error",
             lastError: event.message,
             updatedAtMs: event.timestampMs,
           };
@@ -240,6 +266,143 @@ describe("StoplightController", () => {
     expect(controller.getState().debuggerStatus).toBe("attached");
   });
 
+  it("rejects the Stoplight panel as an arm target", async () => {
+    tabsApi.query.mockResolvedValue([
+      {
+        id: 99,
+        url: "chrome-extension://abcdefghijklmnopabcdefghijklmnop/sidepanel.html",
+        title: "Stoplight",
+      },
+    ]);
+    const errors: string[] = [];
+    const controller = new StoplightController({
+      wasm: createMockWasm(),
+      debuggerApi,
+      tabsApi,
+      sessionStorage: createStorage(),
+      localStorage: createStorage(),
+      clock: () => 225,
+    });
+    controller.subscribe((event) => {
+      if (event.type === "error") {
+        errors.push(event.message);
+      }
+    });
+
+    await controller.hydrate();
+    await controller.armActiveTab();
+
+    expect(debuggerApi.attach).not.toHaveBeenCalled();
+    expect(controller.getState().debuggerStatus).toBe("idle");
+    expect(errors.at(-1)).toContain("Stoplight panel");
+  });
+
+  it("rejects unsupported internal pages as arm targets", async () => {
+    tabsApi.query.mockResolvedValue([
+      {
+        id: 88,
+        url: "chrome://extensions/",
+        title: "Extensions",
+      },
+    ]);
+    const errors: string[] = [];
+    const controller = new StoplightController({
+      wasm: createMockWasm(),
+      debuggerApi,
+      tabsApi,
+      sessionStorage: createStorage(),
+      localStorage: createStorage(),
+      clock: () => 226,
+    });
+    controller.subscribe((event) => {
+      if (event.type === "error") {
+        errors.push(event.message);
+      }
+    });
+
+    await controller.hydrate();
+    await controller.armActiveTab();
+
+    expect(debuggerApi.attach).not.toHaveBeenCalled();
+    expect(controller.getState().debuggerStatus).toBe("idle");
+    expect(errors.at(-1)).toContain("Only http:// and https:// tabs");
+  });
+
+  it("does not silently arm a different active tab than the panel expected", async () => {
+    tabsApi.query.mockResolvedValue([
+      {
+        id: 13,
+        url: "https://other.example.com/dashboard",
+        title: "Other Dashboard",
+      },
+    ]);
+    const errors: string[] = [];
+    const controller = new StoplightController({
+      wasm: createMockWasm(),
+      debuggerApi,
+      tabsApi,
+      sessionStorage: createStorage(),
+      localStorage: createStorage(),
+      clock: () => 227,
+    });
+    controller.subscribe((event) => {
+      if (event.type === "error") {
+        errors.push(event.message);
+      }
+    });
+
+    await controller.hydrate();
+    await controller.handleCommand({ type: "armActiveTab", expectedTabId: 12 } as never);
+
+    expect(debuggerApi.attach).not.toHaveBeenCalled();
+    expect(controller.getState().debuggerStatus).toBe("idle");
+    expect(errors.at(-1)).toContain("Arm target changed");
+  });
+
+  it("arms the retained website target when the Stoplight panel is active", async () => {
+    tabsApi.query
+      .mockResolvedValueOnce([
+        {
+          id: 12,
+          url: "https://example.com/dashboard",
+          title: "Dashboard",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 99,
+          url: "chrome-extension://abcdefghijklmnopabcdefghijklmnop/sidepanel.html",
+          title: "Stoplight",
+        },
+      ]);
+    const controller = new StoplightController({
+      wasm: createMockWasm(),
+      debuggerApi,
+      tabsApi,
+      sessionStorage: createStorage(),
+      localStorage: createStorage(),
+      clock: () => 228,
+    });
+
+    await controller.hydrate();
+    await controller.refreshArmTarget();
+    expect(controller.getState().armTarget).toMatchObject({
+      tabId: 12,
+      status: "ready",
+      source: "activeTab",
+    });
+
+    await controller.handleCommand({ type: "armActiveTab", expectedTabId: 12 });
+
+    expect(debuggerApi.attach).toHaveBeenCalledWith({ tabId: 12 }, "1.3");
+    expect(controller.getState().debuggerStatus).toBe("attached");
+    expect(controller.getState().armTarget).toMatchObject({
+      tabId: 12,
+      status: "ready",
+      source: "retainedTab",
+    });
+  });
+
   it("uses the debugger session to resolve tab metadata when activeTab hides the URL", async () => {
     tabsApi.query.mockResolvedValue([
       {
@@ -288,6 +451,7 @@ describe("StoplightController", () => {
       tabTitle: "Dashboard",
       originAllowlist: ["https://example.com"],
       debuggerStatus: "attached",
+      requestPhase: "waiting",
     });
   });
 
@@ -342,11 +506,14 @@ describe("StoplightController", () => {
       "request-1",
       "request-2",
     ]);
+    expect(controller.getState().requestPhase).toBe("held");
 
     debuggerApi.sendCommand.mockClear();
     await controller.continueAll();
 
     expect(controller.getState().queue).toEqual([]);
+    expect(controller.getState().requestPhase).toBe("forwarded");
+    expect(controller.getState().forwardedRequestCount).toBe(2);
     const continueCalls = debuggerApi.sendCommand.mock.calls as unknown as Array<
       [unknown, string, { requestId: string }]
     >;
@@ -396,6 +563,8 @@ describe("StoplightController", () => {
     );
 
     expect(controller.getState().queue).toEqual([]);
+    expect(controller.getState().requestPhase).toBe("forwarded");
+    expect(controller.getState().forwardedRequestCount).toBe(1);
     expect(debuggerApi.sendCommand).toHaveBeenCalledWith(
       { tabId: 12 },
       "Fetch.continueRequest",
@@ -425,6 +594,7 @@ describe("StoplightController", () => {
     await controller.handleDebuggerDetach({ tabId: 12 }, "canceled_by_user");
 
     expect(controller.getState().debuggerStatus).toBe("detached");
+    expect(controller.getState().requestPhase).toBe("detached");
     expect(controller.getState().detachedReason).toBe("canceled_by_user");
   });
 

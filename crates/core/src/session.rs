@@ -1,4 +1,4 @@
-use crate::model::{DebuggerStatus, RequestRecord, SessionState};
+use crate::model::{ArmTargetSnapshot, DebuggerStatus, RequestPhase, RequestRecord, SessionState};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
     rename_all_fields = "camelCase"
 )]
 pub enum SessionEvent {
+    UpdateArmTarget {
+        arm_target: ArmTargetSnapshot,
+        timestamp_ms: i64,
+    },
     BeginArmSession {
         tab_id: i32,
         tab_url: Option<String>,
@@ -52,6 +56,14 @@ pub enum SessionEvent {
 
 pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> SessionState {
     match event {
+        SessionEvent::UpdateArmTarget {
+            arm_target,
+            timestamp_ms,
+        } => {
+            state.arm_target = arm_target;
+            state.updated_at_ms = timestamp_ms;
+            state
+        }
         SessionEvent::BeginArmSession {
             tab_id,
             tab_url,
@@ -64,6 +76,7 @@ pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> Ses
             state.tab_title = tab_title;
             state.origin_allowlist = dedupe_allowlist(origin_allowlist);
             state.debugger_status = DebuggerStatus::Arming;
+            state.request_phase = RequestPhase::Arming;
             state.queue.clear();
             state.detached_reason = None;
             state.last_error = None;
@@ -72,6 +85,7 @@ pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> Ses
         }
         SessionEvent::ArmSession { timestamp_ms } => {
             state.debugger_status = DebuggerStatus::Attached;
+            state.request_phase = RequestPhase::Waiting;
             state.updated_at_ms = timestamp_ms;
             state
         }
@@ -92,6 +106,7 @@ pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> Ses
             } else {
                 state.queue.push(request);
             }
+            state.request_phase = RequestPhase::Held;
             state.updated_at_ms = timestamp_ms;
             state
         }
@@ -99,7 +114,18 @@ pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> Ses
             request_id,
             timestamp_ms,
         } => {
+            let previous_queue_len = state.queue.len();
             state.queue.retain(|request| request.id != request_id);
+            let removed_count = previous_queue_len.saturating_sub(state.queue.len());
+            if state.queue.is_empty() {
+                state.request_phase = RequestPhase::Forwarded;
+            } else {
+                state.request_phase = RequestPhase::Held;
+            }
+            if removed_count > 0 {
+                state.last_forwarded_at_ms = Some(timestamp_ms);
+                state.forwarded_request_count += removed_count;
+            }
             state.updated_at_ms = timestamp_ms;
             state
         }
@@ -107,9 +133,20 @@ pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> Ses
             request_ids,
             timestamp_ms,
         } => {
+            let previous_queue_len = state.queue.len();
             state
                 .queue
                 .retain(|request| !request_ids.contains(&request.id));
+            let removed_count = previous_queue_len.saturating_sub(state.queue.len());
+            if state.queue.is_empty() {
+                state.request_phase = RequestPhase::Forwarded;
+            } else {
+                state.request_phase = RequestPhase::Held;
+            }
+            if removed_count > 0 {
+                state.last_forwarded_at_ms = Some(timestamp_ms);
+                state.forwarded_request_count += removed_count;
+            }
             state.updated_at_ms = timestamp_ms;
             state
         }
@@ -118,6 +155,7 @@ pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> Ses
             timestamp_ms,
         } => {
             state.debugger_status = DebuggerStatus::Detached;
+            state.request_phase = RequestPhase::Detached;
             state.detached_reason = Some(reason);
             state.queue.clear();
             state.updated_at_ms = timestamp_ms;
@@ -128,6 +166,7 @@ pub fn reduce_session_event(mut state: SessionState, event: SessionEvent) -> Ses
             timestamp_ms,
         } => {
             state.debugger_status = DebuggerStatus::Error;
+            state.request_phase = RequestPhase::Error;
             state.last_error = Some(message);
             state.updated_at_ms = timestamp_ms;
             state
@@ -220,7 +259,53 @@ mod tests {
         );
 
         assert_eq!(drained.debugger_status, DebuggerStatus::Attached);
+        assert_eq!(drained.request_phase, RequestPhase::Forwarded);
+        assert_eq!(drained.forwarded_request_count, 2);
+        assert_eq!(drained.last_forwarded_at_ms, Some(14));
         assert!(drained.queue.is_empty());
+    }
+
+    #[test]
+    fn records_partial_forward_while_queue_remains_held() {
+        let armed = reduce_session_event(
+            SessionState::default(),
+            SessionEvent::BeginArmSession {
+                tab_id: 7,
+                tab_url: Some("https://example.com".into()),
+                tab_title: Some("Example".into()),
+                origin_allowlist: vec!["https://api.example.com".into()],
+                timestamp_ms: 10,
+            },
+        );
+        let attached = reduce_session_event(armed, SessionEvent::ArmSession { timestamp_ms: 11 });
+        let with_one = reduce_session_event(
+            attached,
+            SessionEvent::QueueRequest {
+                request: request("first"),
+                timestamp_ms: 12,
+            },
+        );
+        let with_two = reduce_session_event(
+            with_one,
+            SessionEvent::QueueRequest {
+                request: request("second"),
+                timestamp_ms: 13,
+            },
+        );
+
+        let partial = reduce_session_event(
+            with_two,
+            SessionEvent::ContinueRequest {
+                request_id: "first".into(),
+                timestamp_ms: 14,
+            },
+        );
+
+        assert_eq!(partial.request_phase, RequestPhase::Held);
+        assert_eq!(partial.forwarded_request_count, 1);
+        assert_eq!(partial.last_forwarded_at_ms, Some(14));
+        assert_eq!(partial.queue.len(), 1);
+        assert_eq!(partial.queue[0].id, "second");
     }
 
     #[test]

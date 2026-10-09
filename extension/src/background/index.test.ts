@@ -59,6 +59,7 @@ function createPort(name = PORT_NAME) {
 type TestController = {
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   handleCommand(command: PanelCommand): Promise<void>;
+  refreshArmTarget(): Promise<void>;
   handleDebuggerEvent(): Promise<void>;
   handleDebuggerDetach(): Promise<void>;
 };
@@ -80,6 +81,9 @@ describe("bindWorkerPort", () => {
         return () => undefined;
       },
       handleCommand,
+      async refreshArmTarget() {
+        return undefined;
+      },
       async handleDebuggerEvent() {
         return undefined;
       },

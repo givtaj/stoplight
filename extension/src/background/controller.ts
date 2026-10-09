@@ -2,6 +2,7 @@ import {
   EMPTY_SESSION_STATE,
   PREFERENCES_STORAGE_KEY,
   SESSION_STORAGE_KEY,
+  type ArmTargetSnapshot,
   type ContinueBuildInput,
   type PanelCommand,
   type RequestRecord,
@@ -53,6 +54,11 @@ interface DebuggerApiLike {
 }
 
 type ArmableTab = Pick<chrome.tabs.Tab, "id" | "url" | "title">;
+
+type ResolvedArmTarget = {
+  snapshot: ArmTargetSnapshot;
+  tab: ArmableTab | null;
+};
 
 interface RuntimeEvaluateResponse {
   result?: {
@@ -119,10 +125,10 @@ export class StoplightController {
   async handleCommand(command: PanelCommand): Promise<void> {
     switch (command.type) {
       case "requestState":
-        this.emitState();
+        await this.refreshArmTarget();
         return;
       case "armActiveTab":
-        await this.armActiveTab();
+        await this.armActiveTab(command.expectedTabId);
         return;
       case "detach":
         await this.detach("canceled_by_user");
@@ -142,14 +148,34 @@ export class StoplightController {
     }
   }
 
-  async armActiveTab(): Promise<void> {
-    const [tab] = await this.deps.tabsApi.query({
-      active: true,
-      lastFocusedWindow: true,
+  async refreshArmTarget(): Promise<void> {
+    const target = await this.resolveCurrentArmTarget();
+    await this.transition({
+      type: "updateArmTarget",
+      armTarget: target.snapshot,
+      timestampMs: this.now(),
+    });
+  }
+
+  async armActiveTab(expectedTabId?: number | null): Promise<void> {
+    const target = await this.resolveCurrentArmTarget();
+    await this.transition({
+      type: "updateArmTarget",
+      armTarget: target.snapshot,
+      timestampMs: this.now(),
     });
 
-    if (!tab?.id) {
-      this.emitError("No active tab is available to arm.");
+    if (target.snapshot.status !== "ready" || typeof target.tab?.id !== "number") {
+      this.emitError(
+        target.snapshot.reason ?? "No supported http:// or https:// tab is available to arm.",
+      );
+      return;
+    }
+
+    if (expectedTabId != null && expectedTabId !== target.tab.id) {
+      this.emitError(
+        "Arm target changed before arming. Review the shown target and try again.",
+      );
       return;
     }
 
@@ -157,7 +183,13 @@ export class StoplightController {
       await this.detach("replaced_by_new_session");
     }
 
-    const session = { tabId: tab.id };
+    const tab = target.tab;
+    const targetTabId = tab.id;
+    if (typeof targetTabId !== "number") {
+      this.emitError("No supported http:// or https:// tab is available to arm.");
+      return;
+    }
+    const session: DebuggerTarget = { tabId: targetTabId };
     let attached = false;
 
     try {
@@ -167,7 +199,7 @@ export class StoplightController {
       const tabMetadata = await this.resolveTabMetadata(session, tab);
       if (!tabMetadata.origin) {
         this.emitError("The active tab does not expose a usable origin.");
-        await this.safeDetach(tab.id);
+        await this.safeDetach(targetTabId);
         return;
       }
 
@@ -178,7 +210,7 @@ export class StoplightController {
 
       await this.transition({
         type: "beginArmSession",
-        tabId: tab.id,
+        tabId: targetTabId,
         tabUrl: tabMetadata.url,
         tabTitle: tabMetadata.title,
         originAllowlist,
@@ -198,7 +230,7 @@ export class StoplightController {
         timestampMs: this.now(),
       });
     } catch (error) {
-      if (this.state.tabId === tab.id) {
+      if (this.state.tabId === targetTabId) {
         await this.transition({
           type: "debuggerError",
           message: toErrorMessage(error),
@@ -206,7 +238,7 @@ export class StoplightController {
         });
       }
       if (attached && this.state.debuggerStatus !== "attached") {
-        await this.safeDetach(tab.id);
+        await this.safeDetach(targetTabId);
       }
       this.emitError(toErrorMessage(error));
     }
@@ -440,6 +472,199 @@ export class StoplightController {
     };
   }
 
+  private async resolveCurrentArmTarget(): Promise<ResolvedArmTarget> {
+    const [activeTab] = await this.deps.tabsApi.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
+    const activeSnapshot = this.snapshotArmTarget(activeTab, "activeTab");
+
+    if (activeSnapshot.status === "ready") {
+      return { snapshot: activeSnapshot, tab: activeTab };
+    }
+
+    if (isStoplightPanelUrl(activeSnapshot.tabUrl) && this.state.armTarget.status === "ready") {
+      return {
+        snapshot: {
+          ...this.state.armTarget,
+          reason:
+            "Stoplight panel is active. The shown website tab will be armed; review it before continuing.",
+          source: "retainedTab",
+          updatedAtMs: this.now(),
+        },
+        tab: {
+          id: this.state.armTarget.tabId ?? undefined,
+          url: this.state.armTarget.tabUrl ?? undefined,
+          title: this.state.armTarget.tabTitle ?? undefined,
+        },
+      };
+    }
+
+    if (isStoplightPanelUrl(activeSnapshot.tabUrl)) {
+      const fallback = await this.resolveOnlyWebsiteTabTarget();
+      if (fallback) {
+        return fallback;
+      }
+    }
+
+    return { snapshot: activeSnapshot, tab: null };
+  }
+
+  private async resolveOnlyWebsiteTabTarget(): Promise<ResolvedArmTarget | null> {
+    const tabs = await this.deps.tabsApi.query({
+      lastFocusedWindow: true,
+    });
+    const supportedTargets: Array<{ tab: ArmableTab; snapshot: ArmTargetSnapshot }> = [];
+
+    for (const tab of tabs) {
+      if (isStoplightPanelUrl(tab.url)) {
+        continue;
+      }
+
+      const snapshot = this.snapshotArmTarget(tab, "onlyWebsiteTab");
+      if (snapshot.status === "ready") {
+        supportedTargets.push({ tab, snapshot });
+        continue;
+      }
+
+      if (!tab.url && typeof tab.id === "number") {
+        const inspected = await this.inspectBackgroundTabForArmTarget(tab);
+        if (inspected?.snapshot.status === "ready") {
+          supportedTargets.push(inspected);
+        }
+      }
+    }
+
+    if (supportedTargets.length !== 1) {
+      return null;
+    }
+
+    const [{ tab, snapshot }] = supportedTargets;
+    return {
+      tab,
+      snapshot: {
+        ...snapshot,
+        reason:
+          "Stoplight panel is active. This is the only supported website tab in the focused window.",
+      },
+    };
+  }
+
+  private async inspectBackgroundTabForArmTarget(
+    tab: ArmableTab,
+  ): Promise<{ tab: ArmableTab; snapshot: ArmTargetSnapshot } | null> {
+    if (typeof tab.id !== "number") {
+      return null;
+    }
+
+    const session = { tabId: tab.id };
+    let attached = false;
+    try {
+      await this.deps.debuggerApi.attach(session, CDP_PROTOCOL_VERSION);
+      attached = true;
+      const metadata = await this.resolveTabMetadata(session, tab);
+      const inspectedTab = {
+        id: tab.id,
+        url: metadata.url ?? undefined,
+        title: metadata.title ?? tab.title,
+      };
+      const snapshot = this.snapshotArmTarget(inspectedTab, "onlyWebsiteTab");
+      return { tab: inspectedTab, snapshot };
+    } catch {
+      return null;
+    } finally {
+      if (attached) {
+        await this.safeDetach(tab.id);
+      }
+    }
+  }
+
+  private snapshotArmTarget(
+    tab: ArmableTab | undefined,
+    source: "activeTab" | "onlyWebsiteTab",
+  ): ArmTargetSnapshot {
+    const timestampMs = this.now();
+    if (!tab?.id) {
+      return {
+        tabId: null,
+        tabUrl: null,
+        tabTitle: null,
+        origin: null,
+        status: "none",
+        reason: "No active tab is available to arm.",
+        source: null,
+        updatedAtMs: timestampMs,
+      };
+    }
+
+    const url = tab.url ?? null;
+    const title = tab.title ?? null;
+
+    if (isStoplightPanelUrl(url)) {
+      return {
+        tabId: tab.id,
+        tabUrl: url,
+        tabTitle: title,
+        origin: getOrigin(url),
+        status: "unsupported",
+        reason:
+          "Stoplight panel cannot be armed. Select the website tab you want to inspect, then arm Stoplight.",
+        source,
+        updatedAtMs: timestampMs,
+      };
+    }
+
+    if (!url && source === "onlyWebsiteTab") {
+      return {
+        tabId: tab.id,
+        tabUrl: null,
+        tabTitle: title,
+        origin: null,
+        status: "unsupported",
+        reason: "Chrome did not expose this background tab URL, so Stoplight cannot confirm it is safe to arm.",
+        source,
+        updatedAtMs: timestampMs,
+      };
+    }
+
+    if (!url) {
+      return {
+        tabId: tab.id,
+        tabUrl: null,
+        tabTitle: title,
+        origin: null,
+        status: "ready",
+        reason: "Ready to arm this active tab. Chrome will expose its URL after attach.",
+        source,
+        updatedAtMs: timestampMs,
+      };
+    }
+
+    if (!isSupportedTargetUrl(url)) {
+      return {
+        tabId: tab.id,
+        tabUrl: url,
+        tabTitle: title,
+        origin: getOrigin(url),
+        status: "unsupported",
+        reason: "Only http:// and https:// tabs can be armed for request interception.",
+        source,
+        updatedAtMs: timestampMs,
+      };
+    }
+
+    return {
+      tabId: tab.id,
+      tabUrl: url,
+      tabTitle: title,
+      origin: getOrigin(url),
+      status: "ready",
+      reason: "Ready to arm this website tab.",
+      source,
+      updatedAtMs: timestampMs,
+    };
+  }
+
   private async resolveTabMetadata(
     session: DebuggerTarget,
     tab: ArmableTab,
@@ -549,6 +774,32 @@ function toErrorMessage(error: unknown): string {
   }
 
   return typeof error === "string" ? error : "Unknown error";
+}
+
+function isStoplightPanelUrl(url: string | null | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "chrome-extension:" && parsed.pathname.endsWith("/sidepanel.html");
+  } catch {
+    return false;
+  }
+}
+
+function isSupportedTargetUrl(url: string | null | undefined): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const protocol = new URL(url).protocol;
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export function draftDefaultsForRequest(request: RequestRecord): {

@@ -210,7 +210,7 @@ textarea {
 
 .status-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;
   margin: 1rem 0;
 }
@@ -220,6 +220,73 @@ textarea {
   margin-top: 0.25rem;
   font-size: 1.3rem;
   font-family: var(--font-display);
+}
+
+.target-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.9rem;
+  margin-top: 0.9rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 1rem;
+  background: var(--bg-panel-strong);
+}
+
+.target-title {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1rem;
+}
+
+.target-url,
+.phase-detail {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.phase-detail {
+  margin-top: -0.25rem;
+}
+
+.target-status {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 0.32rem 0.65rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
+.target-status.ready {
+  background: rgba(63, 208, 122, 0.18);
+  color: #c3ffd9;
+}
+
+.target-status.unsupported {
+  background: rgba(242, 91, 75, 0.2);
+  color: #ffd0cb;
+}
+
+.phase-ok {
+  color: var(--green);
+}
+
+.phase-warn {
+  color: var(--amber);
+}
+
+.phase-risk {
+  color: var(--red);
+}
+
+.phase-muted {
+  color: var(--muted);
 }
 
 .editor-group {
@@ -346,9 +413,14 @@ textarea {
     padding: 0.8rem;
   }
 
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+
   .hero,
   .status-head,
-  .panel-head {
+  .panel-head,
+  .target-card {
     flex-direction: column;
     align-items: flex-start;
   }
