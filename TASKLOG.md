@@ -10,12 +10,11 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## Current Snapshot
 
-- Last updated: 2026-11-06
-- Public alpha target: `v0.1.0-alpha.1`, public repository plus prebuilt ZIP. [Alpha gates](docs/release/v0.1-qa-package.md#public-alpha-contract--2026-11-06) are defined; release decision is NO-GO pending candidate evidence and source-review concerns.
-- Public repository created at `https://github.com/givtaj/stoplight` and configured as `origin`; no source push or release was made by the threshold-setting task.
-- Baseline observed in repo: the Rust core, WASM bridge, MV3 extension shell, side panel UI, background controller, GitHub Actions CI, local demo server, and deterministic extension release-flow coverage are implemented.
-- The 2026-10-09 release-proof rerun reconfirmed fmt/workspace tests, extension typecheck, Vitest, build, and headed Chromium Playwright coverage for smoke, explicit website target arming, edited request forwarding, detach, and FIFO release.
-- Expected workflow: multiple agents may update the implementation in parallel, so keep entries short and append-only where possible.
+- Last updated: 2026-11-06.
+- Public alpha target: `v0.1.0-alpha.1`, public repository plus prebuilt ZIP. [Thresholds](docs/release/v0.1-qa-package.md#public-alpha-contract--2026-11-06) and the [selected verification receipt](docs/release/alpha.1-verification.md) separate completed evidence from remaining gates.
+- Source and release evidence are public at [givtaj/stoplight](https://github.com/givtaj/stoplight). Prepublication GO is recorded; publication and A7 verification follow final source/CI checks.
+- Frozen runtime `48c3d6f` passed the clean build, 24 Rust tests, 37 TypeScript tests, 36 browser cases and the first native Chrome acceptance. A separate 13-case core repeat passed. Both native profiles passed, including native installation/removal and server-verified request flows.
+- Other chats share this checkout; preserve unrelated local work and raw verification receipts.
 
 ## Done
 
@@ -39,7 +38,7 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## In Progress
 
-- [ ] Finish native acceptance in two fresh profiles, record A6 GO, publish `v0.1.0-alpha.1`, and close anonymous public-delivery gate A7. Current evidence: [alpha verification receipt](docs/release/alpha.1-verification.md).
+- [ ] Publish `v0.1.0-alpha.1` after final source/CI checks and close anonymous public-delivery gate A7. Current evidence: [alpha verification receipt](docs/release/alpha.1-verification.md).
 
 ## Next Up
 
@@ -47,6 +46,12 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 - [ ] Prepare Chrome Web Store submission and marketing screenshots separately.
 
 ## Log
+
+### 2026-11-06 — Prepublication GO
+
+- First native Chrome 156 and independent Chrome for Testing 145 fresh-profile acceptance passed on the same ZIP, alongside the 36-case matrix and 13-case independent core repeat. The second profile also completed native removal and bounded shutdown.
+- Coordinator records A1–A6 GO under the maintainer’s authorization. Final tag build/package-input equality and hosted CI are checked before publishing; A7 remains pending actual public acquisition and fresh installation.
+
 
 ### 2026-11-06 — Frozen alpha verification
 

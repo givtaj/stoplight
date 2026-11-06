@@ -1,0 +1,47 @@
+{
+  "checked_at_utc": "2026-11-06T20:40:24.090318+00:00",
+  "status": "PASS",
+  "scope": "Independent second native fresh-profile B1 and representative B2\u2013B4 continuation/queue repeat, detach/recovery, removal and shutdown; full automated scope remains a separate receipt.",
+  "source_commit": "48c3d6f60e7b14d1e0b908decda2b67fda2a5cac",
+  "compared_head": "12bcff823aff241129543ffafa3445e265c60db3",
+  "all_32_build_package_inputs_match": true,
+  "artifact_sha256": "0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405",
+  "version": "0.1.0.1",
+  "version_name": "0.1.0-alpha.1",
+  "checks": {
+    "fresh_install_and_identity": "PASS",
+    "correct_target_and_idle_start": "PASS",
+    "json_held_zero_server_receipts": "PASS",
+    "json_edited_header_and_body_once": "PASS",
+    "unicode_xhr_continue_unchanged_discards_draft": "PASS",
+    "fifo_three_originals_despite_draft": "PASS",
+    "fifo_zero_receipts_while_held": "PASS",
+    "detach_releases_held_original": "PASS",
+    "post_detach_normal_traffic": "PASS",
+    "native_remove": "PASS",
+    "bounded_browser_shutdown": "PASS",
+    "fixture_shutdown_and_port_closed": "PASS",
+    "zip_and_13_extracted_files_unchanged": "PASS"
+  },
+  "server_receipts": 7,
+  "public_acquisition": "NOT RUN in this checkpoint; publication owned by coordinator.",
+  "limitations": [
+    "Synthetic loopback HTTP native repeat only; HTTPS and wider matrix established separately by earlier automated tests.",
+    "No publisher-signature, Chrome118, other OS, store approval, production capacity or customer acceptance claim."
+  ],
+  "environment": {
+    "browser": "Google Chrome for Testing145.0.7632.6 arm64",
+    "os": "macOS26.0.1(25A362)",
+    "profile": "stoplight-native-second-1f6dt60u / Default",
+    "fresh_profile": true,
+    "browser_load_flags": false,
+    "installation": "Manual Chrome Extensions Load unpacked from independently verified ZIP extraction",
+    "native_panel": "Opened through toolbar Extensions menu; pinned to toolbar; real side-panel host"
+  },
+  "ui_assistance": "User unlocked Mac before testing. Native folder-picker entry required resolving its Go To Folder overlay; selected directory path was verified. No application source, package or install patch.",
+  "raw_receipt_sha256": "04385baf4ebcb43cec558e3bd16f1b681ba2c519b26de1d97c0562fe181e9ab8",
+  "screenshot": {
+    "file": "../screenshots/alpha.1/second-native-json-held.png",
+    "sha256": "9317247e225230c363c14a3c7e11cd9f51efb6ae8498ca6a44d65273936dc06b"
+  }
+}

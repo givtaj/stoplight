@@ -6,3 +6,5 @@ Captured 2026-11-06 in a fresh signed-out Google Chrome 156.0.8078.80 profile on
 - [Actual DevTools frontend alongside the native Stoplight panel](06-native-devtools-held.png); the held request subsequently continued, as recorded in the [release receipt](../../release/alpha.1-verification.md).
 
 These are acceptance evidence, not store marketing images. Other screenshots in the parent directory describe an earlier working candidate.
+
+The [second native profile](second-native-json-held.png) used Chrome for Testing 145.0.7632.6 and a separately extracted copy of the same ZIP; [its receipt](../../release/alpha.1-native-second.json) records seven exact server deliveries, detach recovery and native removal.

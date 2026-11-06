@@ -1,6 +1,6 @@
 # Stoplight v0.1.0-alpha.1 verification
 
-Prepared on 2026-11-06. **Publication is pending final browser/native acceptance.** This record distinguishes the compiled source, the test harness and release documentation, and public delivery.
+Updated on 2026-11-06. **A1–A6: GO for the exact candidate below. A7 remains pending public publication/download verification.** This record distinguishes the compiled source, the test harness and release documentation, and public delivery.
 
 ## Artifact identity
 
@@ -8,7 +8,7 @@ Prepared on 2026-11-06. **Publication is pending final browser/native acceptance
 | --- | --- |
 | Compiled source | `48c3d6f60e7b14d1e0b908decda2b67fda2a5cac` |
 | Compiled source tree | `2678623ddc7e189b481c89e651464cb7500aed06` |
-| Release tag/source | Pending final documentation commit; corrected harness `34b0e88fc5665fd54af0f9834b665c305a308d59`; build-input equivalence must be verified before tagging |
+| Release tag/source | `v0.1.0-alpha.1`; release notes and the source-equivalence asset record the resolved tag SHA. Corrected harness: `34b0e88fc5665fd54af0f9834b665c305a308d59` |
 | ZIP | `stoplight-v0.1.0-alpha.1.zip` |
 | ZIP SHA-256 | `0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405` |
 | ZIP bytes | 253706 |
@@ -22,18 +22,18 @@ The ZIP was packaged from the independently built source export. All ten runtime
 | Gate | Current result | Evidence |
 | --- | --- | --- |
 | A1 Clean source/build | PASS for compiled source | Clean export verified against all 69 tracked blobs. Formatting, locked workspace tests (24), npm ci, typecheck, unit tests (37) and production build passed. [Hosted CI](https://github.com/givtaj/stoplight/actions/runs/42193482976) passed both Rust and extension jobs at the same SHA. |
-| A2 Browser matrix/repeat | Automated and first native PASS; second native pending | All 36 browser cases passed in 52.8 seconds with zero failures, skips or retries on the exact ZIP. First native Chrome 156 acceptance passed. Independent B2–B4 repetition passed all 13 cases in 23.5 seconds, again without failures/skips/retries. The second native-profile check is required. |
-| A3 Defects/dependencies | Source checks passed; acceptance pending | [Targeted source review](source-review-2026-11-06.md) closed R1–R4 and arm-identity concerns. Fresh npm audit reports zero findings. A Rust advisory scanner was unavailable; no Rust scanner pass is claimed. |
+| A2 Browser matrix/repeat | PASS | All 36 browser cases passed in 52.8 seconds with zero failures, skips or retries on the exact ZIP. First native Chrome 156 acceptance passed. Independent B2–B4 repetition passed all 13 cases in 23.5 seconds, again without failures/skips/retries. Independent native Chrome for Testing 145 acceptance also passed, including fresh Load unpacked, real toolbar-opened panel, edited/original requests, FIFO3, detach and removal. |
+| A3 Defects/dependencies | PASS within documented scope | [Targeted source review](source-review-2026-11-06.md) closed R1–R4 and arm-identity concerns. The completed exact-artifact acceptance has no unresolved blocking defect. Fresh npm audit reports zero findings. A Rust advisory scanner was unavailable; no Rust scanner pass is claimed. |
 | A4 Package/install | PASS | Independent ZIP inspection checked safe paths, no symlinks/cache directories, loadable manifest root, referenced assets/WASM, source identity and all hashes. The exact ZIP loaded through native Load unpacked in a fresh profile. |
 | A5 Public instructions/privacy | PASS | README covers ZIP install, five permissions, manual replacement/removal and feedback. Privacy copy states captured data and retention. Public repository is MIT licensed with Issues enabled. The documented disable/remove/separate-folder replacement procedure passed; preferences reset and no silent re-arm occurred. Permission and privacy wording passed independent review. |
-| A6 Decision | NO-GO pending second native repeat | The maintainer authorized conditional publication after all thresholds pass. This is not a release approval yet. |
+| A6 Decision | GO | On 2026-11-06, the coordinator records GO under the maintainer’s explicit authorization: A1–A5 passed for compiled source `48c3d6f` and ZIP `0fdd1f12…49405`. The final tag revision must retain all 32 build/package inputs and pass hosted CI before publication; the release notes record those checks. |
 | A7 Public acquisition | Not run | No alpha tag or release asset has been published. |
 
 ## Environments and boundaries
 
 - Clean build: macOS 26.0.1 ARM64; Node 22.20.0, npm 10.9.3, Rust/Cargo 1.99.1 and wasm-pack 0.15.0. Dependency/build caches started empty. wasm-pack compiled its wasm-bindgen CLI when no prebuilt tool was available; no source patch was needed.
 - Build minimum check: Node 20.19.0/npm 10.8.2 passed fresh installation, typecheck, 18 then-current unit tests and production build on the earlier working snapshot with the final dependency set. This is a minimum-toolchain check, not the final browser acceptance result.
-- Automated browser: Chrome for Testing 145.0.7632.6 on macOS. First native run: Google Chrome 156.0.8078.80 (arm64), macOS 26.0.1 (25A362), fresh signed-out `Stoplight Alpha1 QA / Profile 2`. Independent core repetition reused Chrome for Testing 145.0.7632.6 with fresh per-test profiles; second native run remains pending.
+- Automated browser: Chrome for Testing 145.0.7632.6 on macOS. First native run: Google Chrome 156.0.8078.80 (arm64), macOS 26.0.1 (25A362), fresh signed-out `Stoplight Alpha1 QA / Profile 2`. Independent core repetition reused Chrome for Testing 145.0.7632.6 with fresh per-test profiles; second native run passed in fresh profile `stoplight-native-second-1f6dt60u / Default` with manual Load unpacked and the actual native panel.
 - Other operating systems and Chrome versions, including the API minimum Chrome 118, are unverified. No store approval, automatic updater, production-capacity or real-customer acceptance claim is made.
 
 The independent verifier repeated all 13 B2–B4 cases from a separate verified export of harness `34b0e88` against its own extraction of the same ZIP. The scope included HTTP/HTTPS origin and tab boundaries, stale and same-tab target changes, unsupported targets, JSON/Unicode/form/XML/empty/bodyless requests over Fetch and XHR, unchanged draft discard and FIFO3 originals. [Independent case summary](alpha.1-core-repeat.json).
@@ -45,6 +45,12 @@ The independent verifier repeated all 13 B2–B4 cases from a separate verified 
 Manual replacement followed the README: detach, disable, remove the old entry, separately extract the same verified ZIP and Load unpacked. The replacement started idle with an empty queue and no silent arm; saved two-origin preferences reset to the default current origin after explicit arm. This rehearses the first alpha’s clean-install replacement procedure, not a cross-version migration or a rollback to a nonexistent prior release.
 
 Both extraction inventories and the ZIP hash remained unchanged. The Mac locked during optional final removal of the replacement; that outcome was not observed. The last observed state was detached with an empty queue, and the fixture server was stopped. The old-entry removal and replacement checks had already passed; the retained QA profile is not claimed removed.
+
+## Independent second native profile
+
+[Second native receipt](alpha.1-native-second.json) records PASS on Chrome for Testing 145.0.7632.6 ARM64, macOS 26.0.1. A new profile manually loaded a fresh extraction of the exact approved ZIP. Seven synthetic server receipts confirmed edited JSON/header, original Unicode XHR after changing a draft, FIFO3 originals despite a draft, detach releasing an original and ordinary traffic afterward. Held requests had zero early deliveries. Native removal, browser shutdown and fixture shutdown passed. The ZIP and all 13 extracted files remained unchanged. No source build or installation patch was required.
+
+This native repeat complements the independent 13-case B2–B4 automated repeat; their scopes remain separately recorded. The source/ZIP identity is unchanged from the full 36-case matrix and first native profile.
 
 ## Evidence provenance
 

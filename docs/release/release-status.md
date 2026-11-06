@@ -1,19 +1,19 @@
 # Stoplight public alpha status
 
-Updated 2026-11-06. The distribution target is a public GitHub prerelease plus a ready-to-load extension ZIP. The [alpha contract](v0.1-qa-package.md#public-alpha-contract--2026-11-06) defines the thresholds; the [selected verification receipt](alpha.1-verification.md) records evidence and limits.
+Updated 2026-11-06. The distribution is a public GitHub prerelease plus a ready-to-load extension ZIP. The [alpha contract](v0.1-qa-package.md#public-alpha-contract--2026-11-06) defines the thresholds; the [verification receipt](alpha.1-verification.md) records evidence and limits.
 
-**Decision: native acceptance is still in progress; publication is pending.**
+**A1–A6: GO for `v0.1.0-alpha.1`. A7: pending public download/install verification.**
 
-| Gate | Current result |
+| Gate | Result |
 | --- | --- |
-| A1 Candidate/build | PASS: clean compiled source `48c3d6f`, 24 Rust tests, 37 TypeScript tests, typecheck, build and hosted CI. |
-| A2 Browser behavior | 36 automated cases PASS with no skips/retries; first native Chrome 156 check PASS; independent 13-case B2–B4 repeat PASS; second native profile pending. |
-| A3 Defects/dependencies | Source concerns resolved and regressions pass; npm audit zero findings. Final native acceptance pending. |
-| A4 Package/install | Exact ZIP and checksum independently verified; fresh native installation PASS. |
-| A5 Docs/privacy | Install, manual replacement/removal, retention, permissions and feedback documented; documented manual replacement PASS. |
-| A6 Decision | NO-GO until all A1–A5 evidence is complete. Maintainer has authorized publication once these gates pass. |
-| A7 Public delivery | Not run; follows publication and must pass before the alpha is announced as verified. |
+| A1 Candidate/build | PASS: clean compiled source `48c3d6f`, 24 Rust tests, 37 TypeScript tests, typecheck, build and hosted CI. Final tag input equality and CI are checked before publication. |
+| A2 Browser behavior | PASS: 36 automated cases and 13 independent core repeat cases without failures/skips/retries; native panels and request flows in two fresh profiles. |
+| A3 Defects/dependencies | PASS: source concerns resolved, exact-artifact acceptance passed, npm audit zero findings. Rust advisory scanner unavailable; no scanner pass claimed. |
+| A4 Package/install | PASS: exact ZIP/checksum/inventory, fresh native Load unpacked and removal. |
+| A5 Docs/privacy | PASS: permissions, retention, feedback, install and manual replacement/removal match observed behavior. |
+| A6 Decision | GO under the maintainer’s conditional publication authorization; final source identity and CI must be confirmed before publishing. |
+| A7 Public delivery | Pending: anonymously download the public ZIP/checksum/source, match hashes, fresh install/core flow and detach/uninstall before announcing a verified alpha. |
 
-The tested ZIP is `stoplight-v0.1.0-alpha.1.zip`, SHA-256 `0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405`. Runtime source is `48c3d6f60e7b14d1e0b908decda2b67fda2a5cac`; later test/documentation commits must preserve every build/package input. The artifact is unchanged by test-harness corrections.
+ZIP: `stoplight-v0.1.0-alpha.1.zip`; SHA-256 `0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405`. Compiled source: `48c3d6f60e7b14d1e0b908decda2b67fda2a5cac`. Later tag changes contain tests/documentation only; the ZIP retains its compiled identity.
 
-Chrome Web Store submission, marketing screenshots, other operating systems and a wider Chrome version matrix are deferred. Native-panel acceptance itself is required. First-alpha rollback is detach, disable and remove; there is no earlier published release or automatic updater.
+Tested on macOS 26.0.1 ARM64 with Google Chrome 156.0.8078.80 and Chrome for Testing 145.0.7632.6. Other operating systems/versions are unverified. Chrome Web Store submission, marketing screenshots and broader platform coverage remain deferred. Manual replacement was rehearsed with the same candidate ZIP; no cross-version migration or prior-release rollback is claimed. First-alpha rollback is detach, disable and remove.

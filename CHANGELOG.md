@@ -4,9 +4,9 @@ All notable changes to this project should be recorded in this file.
 
 The format is based on Keep a Changelog, adapted for the current pre-release phase.
 
-## [Unreleased]
+## [0.1.0-alpha.1] - 2026-11-06
 
-### First public alpha candidate
+### First public developer alpha
 
 - Ready-to-load Manifest V3 extension ZIP, source identity, SHA-256 checksum, license and dependency notices.
 - Explicit website target and origin allowlist; pause Fetch/XHR, inspect requests, edit supported text and headers, continue originals or edits, release queued originals in FIFO order, and detach/re-arm.

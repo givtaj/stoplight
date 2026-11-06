@@ -6,7 +6,7 @@ It uses a thin TypeScript extension shell for Chrome APIs and UI, with a Rust/WA
 
 ## Install the Developer Alpha
 
-The first release target is [`v0.1.0-alpha.1`](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1). Check the [release status](docs/release/release-status.md) for the current acceptance decision. This is an unpacked developer extension, with manual updates and no Chrome Web Store installation.
+The developer alpha is [`v0.1.0-alpha.1`](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1). Check the [release status](docs/release/release-status.md) for the current acceptance decision. This is an unpacked developer extension, with manual updates and no Chrome Web Store installation.
 
 1. Download `stoplight-v0.1.0-alpha.1.zip` and `SHA256SUMS` from the release's **Assets**. The GitHub source archives are for building, not installing.
 2. On macOS, run `shasum -a 256 -c SHA256SUMS` in the download directory and require an `OK` result before loading the extension.
