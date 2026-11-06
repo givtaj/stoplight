@@ -1,0 +1,148 @@
+{
+  "compiled_source": "48c3d6f60e7b14d1e0b908decda2b67fda2a5cac",
+  "harness_source": "34b0e88fc5665fd54af0f9834b665c305a308d59",
+  "zip_sha256": "0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405",
+  "acquisition": "Independent extraction of approved local ZIP; public acquisition not yet run",
+  "browser": "Chrome for Testing 145.0.7632.6",
+  "os": "macOS 26.0.1 ARM64",
+  "stats": {
+    "startTime": "2026-11-06T09:51:15.965Z",
+    "duration": 23450.848,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Alpha B4 Play All sends three originals once in arrival order despite a draft",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "only the armed tab and allowed origin pause across HTTP and HTTPS",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "rejects stale target identity before explicit review and re-arm",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Chrome pages and the extension page cannot become an accidental arm target",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "same-tab navigation invalidates the previously reviewed URL",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "JSON Fetch HTTP",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Unicode text XHR HTTPS",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "urlencoded Fetch HTTP",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "XML XHR HTTPS",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "nonempty to empty Fetch HTTPS",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "bodyless fetch preserves zero bytes and application headers",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "bodyless xhr preserves zero bytes and application headers",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Continue Unchanged ignores edited body and header drafts",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

@@ -33,8 +33,10 @@ The ZIP was packaged from the independently built source export. All ten runtime
 
 - Clean build: macOS 26.0.1 ARM64; Node 22.20.0, npm 10.9.3, Rust/Cargo 1.99.1 and wasm-pack 0.15.0. Dependency/build caches started empty. wasm-pack compiled its wasm-bindgen CLI when no prebuilt tool was available; no source patch was needed.
 - Build minimum check: Node 20.19.0/npm 10.8.2 passed fresh installation, typecheck, 18 then-current unit tests and production build on the earlier working snapshot with the final dependency set. This is a minimum-toolchain check, not the final browser acceptance result.
-- Automated browser: Chrome for Testing 145.0.7632.6 on macOS. First native run: Google Chrome 156.0.8078.80 (arm64), macOS 26.0.1 (25A362), fresh signed-out `Stoplight Alpha1 QA / Profile 2`. Second native run remains pending.
+- Automated browser: Chrome for Testing 145.0.7632.6 on macOS. First native run: Google Chrome 156.0.8078.80 (arm64), macOS 26.0.1 (25A362), fresh signed-out `Stoplight Alpha1 QA / Profile 2`. Independent core repetition reused Chrome for Testing 145.0.7632.6 with fresh per-test profiles; second native run remains pending.
 - Other operating systems and Chrome versions, including the API minimum Chrome 118, are unverified. No store approval, automatic updater, production-capacity or real-customer acceptance claim is made.
+
+The independent verifier repeated all 13 B2–B4 cases from a separate verified export of harness `34b0e88` against its own extraction of the same ZIP. The scope included HTTP/HTTPS origin and tab boundaries, stale and same-tab target changes, unsupported targets, JSON/Unicode/form/XML/empty/bodyless requests over Fetch and XHR, unchanged draft discard and FIFO3 originals. [Independent case summary](alpha.1-core-repeat.json).
 
 ## Native first-profile acceptance
 

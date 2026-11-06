@@ -7,7 +7,7 @@ Updated 2026-11-06. The distribution target is a public GitHub prerelease plus a
 | Gate | Current result |
 | --- | --- |
 | A1 Candidate/build | PASS: clean compiled source `48c3d6f`, 24 Rust tests, 37 TypeScript tests, typecheck, build and hosted CI. |
-| A2 Browser behavior | 36 automated cases PASS with no skips/retries; first native Chrome 156 check PASS; independent second profile pending. |
+| A2 Browser behavior | 36 automated cases PASS with no skips/retries; first native Chrome 156 check PASS; independent 13-case B2–B4 repeat PASS; second native profile pending. |
 | A3 Defects/dependencies | Source concerns resolved and regressions pass; npm audit zero findings. Final native acceptance pending. |
 | A4 Package/install | Exact ZIP and checksum independently verified; fresh native installation PASS. |
 | A5 Docs/privacy | Install, manual replacement/removal, retention, permissions and feedback documented; documented manual replacement PASS. |
