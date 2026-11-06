@@ -8,6 +8,9 @@ The format is based on Keep a Changelog, adapted for the current pre-release pha
 
 ### Added
 
+- Browser regressions for multipart file bytes, non-UTF-8 and empty binary bodies, PNG uploads, static image loading while an API request is held, and clearing an edited body.
+- Native Chrome 156 acceptance evidence and idle, paused-editor, binary inspect-only, and detached screenshots from a fresh signed-out profile on 2026-11-06.
+
 - Explicit arm target state so the side panel can show the website tab that will be armed before attaching Chrome debugger.
 - Request phase state for waiting, held, forwarded, detached, and error UI.
 - Browser E2E coverage for arming the shown website target while the extension panel has focus, detach while a request is held, edited request forwarding, and FIFO Play All.
@@ -23,6 +26,13 @@ The format is based on Keep a Changelog, adapted for the current pre-release pha
 - Baseline extension manifest with `debugger`, `sidePanel`, `storage`, and `activeTab` permissions.
 - WASM-compatible MV3 content security policy for extension pages.
 - TypeScript build, typecheck, unit-test, and Playwright E2E script setup in the extension package.
+
+### Fixed
+
+- Replaced the malformed static-image fixture and isolated initial navigation/favicon traffic in browser tests; removed both skipped cases.
+- Explicit nontext MIME types remain inspect-only even when Chrome omits body data; both editing controls and worker commands enforce the unchanged-only contract.
+- Continue Unchanged and Play All preserve Chrome’s original headers/body without reconstruction. Empty textual edits explicitly send zero bytes.
+- The demo now sends binary fixtures, exposes exact received bytes, and updates its count without generating extra intercepted log requests.
 
 ### Changed
 

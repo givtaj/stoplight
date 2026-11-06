@@ -15,6 +15,7 @@ import { getOrigin, headersToText, normalizeOrigins, parseHeaderText } from "../
 import type { StoplightWasmApi } from "../shared/wasm";
 
 const CDP_PROTOCOL_VERSION = "1.3";
+const MAX_BODY_PREVIEW_BYTES = 1024 * 1024;
 
 type DebuggerTarget = { tabId: number; sessionId?: string };
 
@@ -25,6 +26,7 @@ interface PausedRequestEvent {
     method: string;
     headers: Record<string, string | number | boolean>;
     postData?: string;
+    hasPostData?: boolean;
   };
   resourceType?: string;
   networkId?: string;
@@ -34,6 +36,11 @@ interface PausedRequestEvent {
 interface PendingRequest {
   session: DebuggerTarget;
   request: RequestRecord;
+}
+
+interface BodyCapture {
+  text: string | null;
+  status: "complete" | "unavailable" | "truncated";
 }
 
 interface StorageAreaLike {
@@ -84,6 +91,12 @@ export class StoplightController {
   private preferences: StoplightPreferences = { allowlistsByOrigin: {} };
   private readonly pendingRequests = new Map<string, PendingRequest>();
   private readonly subscribers = new Set<(event: WorkerEvent) => void>();
+  private readonly continuingRequests = new Map<string, number>();
+  private pauseQueue: Promise<void> = Promise.resolve();
+  private stateWrite: Promise<void> = Promise.resolve();
+  private sessionGeneration = 0;
+  private armInFlight = false;
+  private playAllInFlight = false;
 
   constructor(private readonly deps: ControllerDependencies) {}
 
@@ -110,7 +123,24 @@ export class StoplightController {
     this.preferences = storedPreferences ?? { allowlistsByOrigin: {} };
     this.state = storedState ? { ...EMPTY_SESSION_STATE, ...storedState } : EMPTY_SESSION_STATE;
 
-    if (this.state.debuggerStatus === "attached" || this.state.debuggerStatus === "arming") {
+    if (this.state.debuggerStatus === "attached" || this.state.debuggerStatus === "arming"
+      || (this.state.debuggerStatus === "error" && this.state.queue.length > 0)) {
+      if (typeof this.state.tabId === "number") {
+        // A service-worker restart can leave the debugger transport attached.
+        // Detach it before dropping the recovered queue so held traffic settles.
+        const detached = await this.safeDetach(this.state.tabId);
+        if (!detached) {
+          for (const request of this.state.queue) {
+            this.pendingRequests.set(request.id, { session: { tabId: this.state.tabId }, request });
+          }
+          await this.transition({
+            type: "debuggerError",
+            message: "The worker restarted but Chrome could not detach the previous session. Retry Detach to release held requests.",
+            timestampMs: this.now(),
+          });
+          return;
+        }
+      }
       await this.transition({
         type: "debuggerDetached",
         reason: "The extension worker restarted. Re-arm the tab to continue intercepting.",
@@ -128,7 +158,7 @@ export class StoplightController {
         await this.refreshArmTarget();
         return;
       case "armActiveTab":
-        await this.armActiveTab(command.expectedTabId);
+        await this.armActiveTab(command.expectedTabId, command.expectedTabUrl);
         return;
       case "detach":
         await this.detach("canceled_by_user");
@@ -157,13 +187,32 @@ export class StoplightController {
     });
   }
 
-  async armActiveTab(expectedTabId?: number | null): Promise<void> {
+  async armActiveTab(expectedTabId?: number | null, expectedTabUrl?: string | null): Promise<void> {
+    if (this.armInFlight) {
+      return;
+    }
+    this.armInFlight = true;
+    try {
+      await this.armReviewedTab(expectedTabId, expectedTabUrl);
+    } finally {
+      this.armInFlight = false;
+    }
+  }
+
+  private async armReviewedTab(expectedTabId?: number | null, expectedTabUrl?: string | null): Promise<void> {
+    let generation = this.sessionGeneration;
     const target = await this.resolveCurrentArmTarget();
+    if (generation !== this.sessionGeneration) {
+      return;
+    }
     await this.transition({
       type: "updateArmTarget",
       armTarget: target.snapshot,
       timestampMs: this.now(),
     });
+    if (generation !== this.sessionGeneration) {
+      return;
+    }
 
     if (target.snapshot.status !== "ready" || typeof target.tab?.id !== "number") {
       this.emitError(
@@ -172,15 +221,19 @@ export class StoplightController {
       return;
     }
 
-    if (expectedTabId != null && expectedTabId !== target.tab.id) {
+    if ((expectedTabId != null && expectedTabId !== target.tab.id)
+      || (expectedTabUrl !== undefined && expectedTabUrl !== target.snapshot.tabUrl)) {
       this.emitError(
         "Arm target changed before arming. Review the shown target and try again.",
       );
       return;
     }
 
-    if (this.state.tabId && this.state.debuggerStatus === "attached") {
-      await this.detach("replaced_by_new_session");
+    if (this.state.tabId && !["idle", "detached"].includes(this.state.debuggerStatus)) {
+      if (!await this.detach("replaced_by_new_session")) {
+        return;
+      }
+      generation = this.sessionGeneration;
     }
 
     const tab = target.tab;
@@ -190,6 +243,8 @@ export class StoplightController {
       return;
     }
     const session: DebuggerTarget = { tabId: targetTabId };
+    generation = ++this.sessionGeneration;
+    this.pauseQueue = Promise.resolve();
     let attached = false;
 
     try {
@@ -197,9 +252,19 @@ export class StoplightController {
       attached = true;
 
       const tabMetadata = await this.resolveTabMetadata(session, tab);
-      if (!tabMetadata.origin) {
+      if (generation !== this.sessionGeneration) {
+        await this.safeDetach(targetTabId);
+        return;
+      }
+      if (!isSupportedTargetUrl(tabMetadata.url) || !tabMetadata.origin) {
         this.emitError("The active tab does not expose a usable origin.");
         await this.safeDetach(targetTabId);
+        return;
+      }
+      if (target.snapshot.tabUrl && tabMetadata.url !== target.snapshot.tabUrl) {
+        await this.safeDetach(targetTabId);
+        await this.refreshArmTarget();
+        this.emitError("Arm target changed before arming. Review the shown target and try again.");
         return;
       }
 
@@ -216,14 +281,28 @@ export class StoplightController {
         originAllowlist,
         timestampMs: this.now(),
       });
+      if (generation !== this.sessionGeneration) {
+        await this.safeDetach(targetTabId);
+        return;
+      }
 
-      await this.deps.debuggerApi.sendCommand(session, "Network.enable");
+      await this.deps.debuggerApi.sendCommand(session, "Network.enable", {
+        maxPostDataSize: MAX_BODY_PREVIEW_BYTES,
+      });
+      if (generation !== this.sessionGeneration) {
+        await this.safeDetach(targetTabId);
+        return;
+      }
       await this.deps.debuggerApi.sendCommand(session, "Fetch.enable", {
         patterns: [
           { resourceType: "XHR", requestStage: "Request" },
           { resourceType: "Fetch", requestStage: "Request" },
         ],
       });
+      if (generation !== this.sessionGeneration) {
+        await this.safeDetach(targetTabId);
+        return;
+      }
 
       await this.transition({
         type: "armSession",
@@ -244,24 +323,32 @@ export class StoplightController {
     }
   }
 
-  async detach(reason: string): Promise<void> {
+  async detach(reason: string): Promise<boolean> {
     const tabId = this.state.tabId;
     if (!tabId) {
-      return;
+      this.sessionGeneration += 1;
+      return true;
     }
 
     try {
       await this.deps.debuggerApi.detach({ tabId });
-    } catch {
-      // Ignore detach failures and still reset the in-memory session.
+    } catch (error) {
+      if (!isAlreadyDetached(error)) {
+        this.emitError(`Could not detach: ${toErrorMessage(error)}. Retry Detach to release interception.`);
+        return false;
+      }
     }
 
+    this.sessionGeneration += 1;
+    this.pauseQueue = Promise.resolve();
     this.pendingRequests.clear();
+    this.continuingRequests.clear();
     await this.transition({
       type: "debuggerDetached",
       reason,
       timestampMs: this.now(),
     });
+    return true;
   }
 
   async handleDebuggerEvent(
@@ -269,7 +356,8 @@ export class StoplightController {
     method: string,
     params: unknown,
   ): Promise<void> {
-    if (method !== "Fetch.requestPaused" || source.tabId !== this.state.tabId) {
+    if (method !== "Fetch.requestPaused" || source.tabId !== this.state.tabId
+      || !["attached", "arming"].includes(this.state.debuggerStatus)) {
       return;
     }
 
@@ -281,8 +369,18 @@ export class StoplightController {
       return;
     }
 
-    try {
-      const postData = await this.resolvePostData(session, paused);
+    const generation = this.sessionGeneration;
+    const receivedAtMs = this.now();
+    // Queue before the first asynchronous body lookup to retain event arrival
+    // order even when some payloads require a slower Network lookup.
+    const pendingPause = this.pauseQueue.then(async () => {
+      if (generation !== this.sessionGeneration) {
+        return;
+      }
+      const capture = await this.resolvePostData(session, paused);
+      if (generation !== this.sessionGeneration) {
+        return;
+      }
       const request = this.deps.wasm.normalizeRequest({
         id: paused.requestId,
         networkId: paused.networkId ?? null,
@@ -293,9 +391,16 @@ export class StoplightController {
           name,
           value: String(value),
         })),
-        postData,
-        timestampMs: this.now(),
+        postData: capture.text,
+        timestampMs: receivedAtMs,
       });
+      request.body.captureStatus = capture.status;
+      if (capture.status !== "complete") {
+        request.body.editable = false;
+        request.body.reason = capture.status === "truncated"
+          ? "Body capture is truncated. This request can only continue unchanged."
+          : request.body.reason ?? "Body capture is unavailable. This request can only continue unchanged.";
+      }
 
       this.pendingRequests.set(paused.requestId, { session, request });
       await this.transition({
@@ -303,10 +408,15 @@ export class StoplightController {
         request,
         timestampMs: this.now(),
       });
-    } catch (error) {
-      this.emitError(toErrorMessage(error));
-      await this.resumeRequest(session, paused.requestId);
-    }
+    }).catch((error) => {
+      if (generation === this.sessionGeneration) {
+        // A capture or persistence failure is never authorization to send a
+        // matching request. Keep the debugger attached for explicit recovery.
+        this.emitError(`${toErrorMessage(error)} Request remains held; use Continue Unchanged or Detach to recover.`);
+      }
+    });
+    this.pauseQueue = pendingPause;
+    await pendingPause;
   }
 
   async handleDebuggerDetach(
@@ -317,7 +427,10 @@ export class StoplightController {
       return;
     }
 
+    this.sessionGeneration += 1;
+    this.pauseQueue = Promise.resolve();
     this.pendingRequests.clear();
+    this.continuingRequests.clear();
     await this.transition({
       type: "debuggerDetached",
       reason,
@@ -352,8 +465,9 @@ export class StoplightController {
     headerText?: string,
     bodyText?: string,
   ): Promise<void> {
+    const generation = this.sessionGeneration;
     const continued = await this.dispatchContinue(requestId, headerText, bodyText);
-    if (!continued) {
+    if (!continued || generation !== this.sessionGeneration) {
       return;
     }
 
@@ -365,17 +479,33 @@ export class StoplightController {
   }
 
   async continueAll(): Promise<void> {
+    if (this.playAllInFlight) {
+      return;
+    }
+    this.playAllInFlight = true;
+    try {
+      await this.continueAllOriginals();
+    } finally {
+      this.playAllInFlight = false;
+    }
+  }
+
+  private async continueAllOriginals(): Promise<void> {
+    const generation = this.sessionGeneration;
     const requestIds = this.state.queue.map((request) => request.id);
     const continued: string[] = [];
 
     for (const requestId of requestIds) {
+      if (generation !== this.sessionGeneration) {
+        return;
+      }
       const didContinue = await this.dispatchContinue(requestId);
       if (didContinue) {
         continued.push(requestId);
       }
     }
 
-    if (!continued.length) {
+    if (!continued.length || generation !== this.sessionGeneration) {
       return;
     }
 
@@ -392,60 +522,96 @@ export class StoplightController {
     bodyText?: string,
   ): Promise<boolean> {
     const pending = this.pendingRequests.get(requestId);
+    if (this.continuingRequests.has(requestId)) {
+      return false;
+    }
     if (!pending) {
       this.emitError(`Request ${requestId} is no longer paused.`);
       return false;
     }
 
-    const headers = parseHeaderText(headerText ?? pending.request.headerText);
-    const input: ContinueBuildInput = {
-      requestId,
-      headers,
-      body: {
-        ...pending.request.body,
-        text: bodyText ?? pending.request.body.text,
-      },
-    };
+    const hasDraft = headerText !== undefined || bodyText !== undefined;
+    const generation = this.sessionGeneration;
+    if (hasDraft && !pending.request.body.editable) {
+      this.emitError("This request is inspect-only and can only continue unchanged.");
+      return false;
+    }
 
     try {
-      const command = this.deps.wasm.buildContinuePayload(input);
-      await this.deps.debuggerApi.sendCommand(pending.session, "Fetch.continueRequest", {
-        requestId: command.requestId,
-        headers: command.headers,
-        ...(command.postDataBase64 ? { postData: command.postDataBase64 } : {}),
-      });
+      this.continuingRequests.set(requestId, generation);
+      if (!hasDraft) {
+        // Let Chrome retain the original headers and bytes, including multipart
+        // file parts and binary data that CDP may not expose as text.
+        await this.deps.debuggerApi.sendCommand(pending.session, "Fetch.continueRequest", {
+          requestId,
+        });
+      } else {
+        const input: ContinueBuildInput = {
+          requestId,
+          headers: parseHeaderText(headerText ?? pending.request.headerText),
+          body: {
+            ...pending.request.body,
+            text: bodyText ?? pending.request.body.text,
+          },
+        };
+        const command = this.deps.wasm.buildContinuePayload(input);
+        const postData = bodyText === "" ? "" : command.postDataBase64;
+        await this.deps.debuggerApi.sendCommand(pending.session, "Fetch.continueRequest", {
+          requestId: command.requestId,
+          headers: command.headers,
+          ...(postData !== null ? { postData } : {}),
+        });
+      }
+      if (generation !== this.sessionGeneration) {
+        return false;
+      }
       this.pendingRequests.delete(requestId);
       return true;
     } catch (error) {
       this.emitError(toErrorMessage(error));
       return false;
+    } finally {
+      if (this.continuingRequests.get(requestId) === generation) {
+        this.continuingRequests.delete(requestId);
+      }
     }
   }
 
   private async resolvePostData(
     session: DebuggerTarget,
     paused: PausedRequestEvent,
-  ): Promise<string | null> {
-    if (typeof paused.request.postData === "string") {
-      return paused.request.postData;
+  ): Promise<BodyCapture> {
+    const contentLengthText = Object.entries(paused.request.headers)
+      .find(([name]) => name.toLowerCase() === "content-length")?.[1];
+    const contentLength = contentLengthText === undefined ? null : Number(contentLengthText);
+    let text = paused.request.postData;
+    if (typeof text !== "string" && paused.networkId && paused.request.hasPostData !== false) {
+      try {
+        const response = (await this.deps.debuggerApi.sendCommand(
+          session, "Network.getRequestPostData", { requestId: paused.networkId },
+        )) as { postData?: string } | undefined;
+        text = response?.postData;
+      } catch {
+        // Missing capture must not be interpreted as an editable empty body.
+      }
     }
-
-    if (!paused.networkId) {
-      return null;
+    if (typeof text !== "string") {
+      const bodyless = paused.request.hasPostData === false
+        || (paused.request.hasPostData !== true && (contentLength === 0
+          || ["GET", "HEAD"].includes(paused.request.method.toUpperCase())));
+      return bodyless ? { text: "", status: "complete" } : { text: null, status: "unavailable" };
     }
-
-    try {
-      const response = (await this.deps.debuggerApi.sendCommand(
-        session,
-        "Network.getRequestPostData",
-        {
-          requestId: paused.networkId,
-        },
-      )) as { postData?: string };
-      return typeof response.postData === "string" ? response.postData : null;
-    } catch {
-      return null;
+    const byteLength = new TextEncoder().encode(text).length;
+    if (byteLength > MAX_BODY_PREVIEW_BYTES) {
+      return { text: text.slice(0, MAX_BODY_PREVIEW_BYTES / 4), status: "truncated" };
     }
+    if (contentLength !== null && Number.isFinite(contentLength) && contentLength > byteLength) {
+      return { text, status: text.length ? "truncated" : "unavailable" };
+    }
+    if (text === "" && paused.request.hasPostData === true && contentLength !== 0) {
+      return { text: null, status: "unavailable" };
+    }
+    return { text, status: "complete" };
   }
 
   private shouldPause(paused: PausedRequestEvent): boolean {
@@ -484,19 +650,20 @@ export class StoplightController {
     }
 
     if (isStoplightPanelUrl(activeSnapshot.tabUrl) && this.state.armTarget.status === "ready") {
+      const tabs = await this.deps.tabsApi.query({ lastFocusedWindow: true });
+      const retainedTab = tabs.find((tab) => tab.id === this.state.armTarget.tabId);
+      const retainedSnapshot = this.snapshotArmTarget(retainedTab, "retainedTab");
       return {
         snapshot: {
-          ...this.state.armTarget,
+          ...retainedSnapshot,
           reason:
-            "Stoplight panel is active. The shown website tab will be armed; review it before continuing.",
+            retainedSnapshot.status === "ready"
+              ? "Stoplight panel is active. The shown website tab will be armed; review it before continuing."
+              : retainedSnapshot.reason,
           source: "retainedTab",
           updatedAtMs: this.now(),
         },
-        tab: {
-          id: this.state.armTarget.tabId ?? undefined,
-          url: this.state.armTarget.tabUrl ?? undefined,
-          title: this.state.armTarget.tabTitle ?? undefined,
-        },
+        tab: retainedTab ?? null,
       };
     }
 
@@ -527,12 +694,6 @@ export class StoplightController {
         continue;
       }
 
-      if (!tab.url && typeof tab.id === "number") {
-        const inspected = await this.inspectBackgroundTabForArmTarget(tab);
-        if (inspected?.snapshot.status === "ready") {
-          supportedTargets.push(inspected);
-        }
-      }
     }
 
     if (supportedTargets.length !== 1) {
@@ -550,38 +711,9 @@ export class StoplightController {
     };
   }
 
-  private async inspectBackgroundTabForArmTarget(
-    tab: ArmableTab,
-  ): Promise<{ tab: ArmableTab; snapshot: ArmTargetSnapshot } | null> {
-    if (typeof tab.id !== "number") {
-      return null;
-    }
-
-    const session = { tabId: tab.id };
-    let attached = false;
-    try {
-      await this.deps.debuggerApi.attach(session, CDP_PROTOCOL_VERSION);
-      attached = true;
-      const metadata = await this.resolveTabMetadata(session, tab);
-      const inspectedTab = {
-        id: tab.id,
-        url: metadata.url ?? undefined,
-        title: metadata.title ?? tab.title,
-      };
-      const snapshot = this.snapshotArmTarget(inspectedTab, "onlyWebsiteTab");
-      return { tab: inspectedTab, snapshot };
-    } catch {
-      return null;
-    } finally {
-      if (attached) {
-        await this.safeDetach(tab.id);
-      }
-    }
-  }
-
   private snapshotArmTarget(
     tab: ArmableTab | undefined,
-    source: "activeTab" | "onlyWebsiteTab",
+    source: "activeTab" | "onlyWebsiteTab" | "retainedTab",
   ): ArmTargetSnapshot {
     const timestampMs = this.now();
     if (!tab?.id) {
@@ -614,7 +746,7 @@ export class StoplightController {
       };
     }
 
-    if (!url && source === "onlyWebsiteTab") {
+    if (!url && source !== "activeTab") {
       return {
         tabId: tab.id,
         tabUrl: null,
@@ -673,14 +805,12 @@ export class StoplightController {
     title: string | null;
     origin: string | null;
   }> {
-    const evaluatedUrl =
-      getOrigin(tab.url) === null
-        ? await this.evaluateString(
-            session,
-            "typeof location === 'object' ? location.href : null",
-          )
-        : null;
-    const url = getOrigin(tab.url) === null ? evaluatedUrl : tab.url ?? evaluatedUrl;
+    const evaluatedUrl = await this.evaluateString(
+      session,
+      "typeof location === 'object' ? location.href : null",
+    );
+    const liveTab = evaluatedUrl ? tab : (await this.deps.tabsApi.query({})).find((candidate) => candidate.id === tab.id);
+    const url = evaluatedUrl ?? liveTab?.url ?? null;
     const title =
       tab.title ??
       (await this.evaluateString(
@@ -715,11 +845,12 @@ export class StoplightController {
     }
   }
 
-  private async safeDetach(tabId: number): Promise<void> {
+  private async safeDetach(tabId: number): Promise<boolean> {
     try {
       await this.deps.debuggerApi.detach({ tabId });
-    } catch {
-      // Ignore cleanup failures after partial arm attempts.
+      return true;
+    } catch (error) {
+      return isAlreadyDetached(error);
     }
   }
 
@@ -735,14 +866,23 @@ export class StoplightController {
 
   private async transition(event: SessionEvent): Promise<void> {
     this.state = this.deps.wasm.reduceSessionEvent(this.state, event);
-    await this.persistState();
     this.emitState();
+    try {
+      await this.persistState();
+    } catch (error) {
+      this.emitError(`Could not save session state: ${toErrorMessage(error)}. The visible session is still active in memory; use Detach before closing if interception is active.`);
+    }
   }
 
   private async persistState(): Promise<void> {
-    await this.deps.sessionStorage.set({
-      [SESSION_STORAGE_KEY]: this.state,
-    });
+    const snapshot = this.state;
+    // Serialize writes so a slow older queue snapshot cannot restore captured
+    // headers or bodies after a newer detach/continue has cleared them.
+    const write = this.stateWrite.catch(() => undefined).then(() =>
+      this.deps.sessionStorage.set({ [SESSION_STORAGE_KEY]: snapshot }),
+    );
+    this.stateWrite = write;
+    await write;
   }
 
   private async persistPreferences(): Promise<void> {
@@ -774,6 +914,10 @@ function toErrorMessage(error: unknown): string {
   }
 
   return typeof error === "string" ? error : "Unknown error";
+}
+
+function isAlreadyDetached(error: unknown): boolean {
+  return /not attached|no tab with given id|no target with given id/i.test(toErrorMessage(error));
 }
 
 function isStoplightPanelUrl(url: string | null | undefined): boolean {

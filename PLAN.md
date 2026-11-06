@@ -80,7 +80,7 @@ Platform constraint already verified from official docs: MV3 cannot use blocking
   - pause multiple requests and verify `Play all` releases them in arrival order
   - verify static assets are not paused in v1
   - verify multipart/binary requests are visible but not editable
-  - verify opening DevTools causes a visible detach/error state instead of a silent hang
+  - verify opening DevTools leaves truthful session state and requests can settle; if Chrome detaches, show a visible detached/error state and require re-arm (Chrome 156 native QA on 2026-11-06 observed coexistence)
 - Release checks:
   - verify Chrome permission warnings are accurate and justified
   - verify the Chrome Web Store listing explains the `debugger` permission clearly

@@ -105,6 +105,7 @@ mod tests {
             kind: EditableBodyKind::Json,
             text: text.into(),
             editable: true,
+            capture_status: Default::default(),
             encoding: Some("utf-8".into()),
             reason: None,
             content_type: Some("application/json".into()),

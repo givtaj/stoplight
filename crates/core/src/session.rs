@@ -224,6 +224,25 @@ mod tests {
     }
 
     #[test]
+    fn retains_capture_provenance_through_session_serialization() {
+        let mut captured = request("partial");
+        captured.body.capture_status = crate::model::BodyCaptureStatus::Truncated;
+        captured.body.editable = false;
+        captured.body.reason = Some("Body capture is truncated.".into());
+        let queued = reduce_session_event(
+            SessionState::default(),
+            SessionEvent::QueueRequest {
+                request: captured,
+                timestamp_ms: 1,
+            },
+        );
+        let value = serde_json::to_value(&queued).unwrap();
+        assert_eq!(value["queue"][0]["body"]["captureStatus"], "truncated");
+        let restored: SessionState = serde_json::from_value(value).unwrap();
+        assert_eq!(restored, queued);
+    }
+
+    #[test]
     fn tracks_queue_transitions() {
         let armed = reduce_session_event(
             SessionState::default(),

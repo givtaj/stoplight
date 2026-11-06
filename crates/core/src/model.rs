@@ -20,12 +20,23 @@ pub enum EditableBodyKind {
     Unknown,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum BodyCaptureStatus {
+    #[default]
+    Complete,
+    Unavailable,
+    Truncated,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct EditableBody {
     pub kind: EditableBodyKind,
     pub text: String,
     pub editable: bool,
+    #[serde(default)]
+    pub capture_status: BodyCaptureStatus,
     pub encoding: Option<String>,
     pub reason: Option<String>,
     pub content_type: Option<String>,

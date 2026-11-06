@@ -11,13 +11,20 @@ Stoplight stores the following browser-local data:
 - The armed tab session state, including the current queue of paused requests.
 - The shown arm target URL and title, plus the current tab URL and title while a session is active.
 - The per-origin allowlist used to decide which requests should be paused.
-- Request metadata needed to present the paused queue and continue requests.
+- Captured request URLs (including query strings), methods, headers and available request bodies needed to present the paused queue and continue requests. These may contain cookies, authorization tokens, personal data or other secrets from the website being debugged.
+- Session status, timestamps, forwarded-request counts and the latest error/detach reason.
 
 ## Data Location
 
 - Session state is stored in `chrome.storage.session`.
 - Lightweight preferences are stored in `chrome.storage.local`.
 - The Rust/WASM code runs locally inside the extension bundle.
+
+## Retention and Clearing
+
+Continuing a request removes it from the stored queue. Detaching clears the queue and its captured headers/bodies, but the session can retain tab URL/title, origin allowlist, counters and status metadata. Editor drafts live in the panel's memory, rather than the persistent origin preferences.
+
+Chrome clears `storage.session` when the extension is disabled, reloaded or updated, and when the browser restarts. Origin allowlists in `storage.local` survive those actions. Removing Stoplight clears its local extension storage. Clearing ordinary browsing history is not a reliable way to remove extension preferences. These storage lifetimes follow [Chrome's storage documentation](https://developer.chrome.com/docs/extensions/reference/api/storage#storage-areas); the release receipt records which lifecycle paths were exercised.
 
 ## Network Behavior
 
@@ -29,7 +36,7 @@ Stoplight also reads tab URL and title metadata so the side panel can show the w
 
 ## Data Sharing
 
-Stoplight does not intentionally send request data to third-party services. Request metadata and request bodies stay inside the browser session unless the user continues them to the target site.
+Stoplight has no telemetry or external backend and does not send captured data to a separate service. Continuing a request sends it to its original destination, with edits only when explicitly requested. Play All sends originals. Detachment or browser cleanup may also let held original requests proceed; pausing is not cancellation. The destination website still handles requests according to its own behavior and privacy practices.
 
 ## User Control
 

@@ -10,7 +10,9 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## Current Snapshot
 
-- Last updated: 2026-10-09
+- Last updated: 2026-11-06
+- Public alpha target: `v0.1.0-alpha.1`, public repository plus prebuilt ZIP. [Alpha gates](docs/release/v0.1-qa-package.md#public-alpha-contract--2026-11-06) are defined; release decision is NO-GO pending candidate evidence and source-review concerns.
+- Public repository created at `https://github.com/givtaj/stoplight` and configured as `origin`; no source push or release was made by the threshold-setting task.
 - Baseline observed in repo: the Rust core, WASM bridge, MV3 extension shell, side panel UI, background controller, GitHub Actions CI, local demo server, and deterministic extension release-flow coverage are implemented.
 - The 2026-10-09 release-proof rerun reconfirmed fmt/workspace tests, extension typecheck, Vitest, build, and headed Chromium Playwright coverage for smoke, explicit website target arming, edited request forwarding, detach, and FIFO release.
 - Expected workflow: multiple agents may update the implementation in parallel, so keep entries short and append-only where possible.
@@ -37,15 +39,31 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## In Progress
 
-- [ ] Browser E2E coverage for static assets, multipart inspect-only behavior, and binary handling. `npm run test:e2e` currently reports `5 passed, 2 skipped`; the skipped specs remain static asset auto-continue and multipart inspect-only.
+- [ ] Browser evidence for static assets, multipart inspect-only behavior, and binary handling. The historical 2026-10-09 Playwright result was `5 passed, 2 skipped`; manual proof on the exact candidate may close alpha behavior gates while automation remains backlog.
+- [ ] Resolve the alpha source-review concerns: empty-body edits, binary/missing-body classification, unchanged request preservation and held-request recovery.
 - [ ] Manual Chrome acceptance on a clean Chrome profile. No acceptance artifact is present in the workspace as of 2026-10-09.
 
 ## Next Up
 
-- [ ] Capture release screenshots once the manual browser flows are stable in Chrome. `docs/screenshots/` still contains only the placeholder README.
-- [ ] Cut a `v0.1.0` release candidate after manual Chrome acceptance and screenshots are captured.
+- [ ] Complete A1–A6 and package `v0.1.0-alpha.1`; verify public delivery under A7 before announcing a verified alpha.
+- [ ] Capture marketing screenshots for later store publication; they are not a developer-alpha blocker.
 
 ## Log
+
+### 2026-11-06 — Public alpha completion
+
+- Maintainer authorized coordination of both active chats, closing the remaining alpha gates, and publishing after they pass.
+- Implementation lane prepared capture provenance, FIFO and session-generation guards, persistence-failure recovery, reviewed arm-target identity, strict edit validation and 35 browser scenarios. Fast checks passed 24 Rust and 37 TypeScript tests; the expanded browser matrix awaits the frozen ZIP.
+- Dependency lane updated Vite/Vitest/transitives with zero npm audit findings and validated installation/typecheck/unit/build on Node 20.19.0. Final clean-source validation is still required.
+- Release lane added alpha manifest identity, install/update/privacy documentation, dependency notices and packaging bound to a source/build inventory. Synthetic packaging checks reject changed assets, missing chunks and wrong source identity.
+- Raw local evidence and unrelated presentation output remain outside the publication set. Public release remains conditional on A1–A7; no alpha has been published at this checkpoint.
+
+### 2026-11-06
+
+- Reviewed the two release-related chats and existing source/QA evidence. Defined A1–A7 and browser scenarios B1–B10 in the existing QA package, keeping historical results separate from current candidate approval.
+- Set zero-tolerance gates for request corruption, wrong-target interception, unintended disclosure, failed install/core behavior, duplicate sends and unrecoverable held requests. Allowed documented manual edge-case proof for alpha.
+- Maintainer selected public repository plus prebuilt ZIP. Created public `givtaj/stoplight` via `gh` and added `origin`; source publication and alpha delivery remain pending.
+- Deferred store approval, marketing screenshots and broader platform coverage. No implementation change, test run, source push or release publication was performed by this threshold-setting task.
 
 ### 2026-10-09
 

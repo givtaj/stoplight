@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 
 const requestedPort = Number.parseInt(process.env.PORT ?? "43118", 10);
 const png = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO3ZsL0AAAAASUVORK5CYII=",
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGOIuNb7HwAGAAK7G+gDawAAAABJRU5ErkJggg==",
   "base64",
 );
 const received = [];
@@ -26,6 +26,18 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (url.pathname === "/asset.js") {
+    res.writeHead(200, { "Content-Type": "application/javascript", "Cache-Control": "no-store" });
+    res.end('document.documentElement.dataset.stoplightScriptLoaded = "yes";');
+    return;
+  }
+
+  if (url.pathname === "/asset.css") {
+    res.writeHead(200, { "Content-Type": "text/css", "Cache-Control": "no-store" });
+    res.end('html { --stoplight-static-proof: loaded; }');
+    return;
+  }
+
   if (url.pathname === "/api/log") {
     sendJson(res, { received });
     return;
@@ -45,7 +57,8 @@ const server = createServer(async (req, res) => {
         "content-type": req.headers["content-type"] ?? null,
         "x-stoplight": req.headers["x-stoplight"] ?? null,
       },
-      body,
+      body: body.toString("utf8"),
+      bodyHex: body.toString("hex"),
       receivedAt: new Date().toISOString(),
     };
     received.push(record);
@@ -75,7 +88,7 @@ async function readBody(req) {
   for await (const chunk of req) {
     chunks.push(Buffer.from(chunk));
   }
-  return Buffer.concat(chunks).toString("utf8");
+  return Buffer.concat(chunks);
 }
 
 function sendJson(res, payload) {
@@ -312,7 +325,7 @@ function pageHtml() {
     <header>
       <div>
         <h1>Stoplight demo target</h1>
-        <p class="lede">Use this page with the unpacked Stoplight extension. Each button starts browser traffic that should pause in the side panel before the server sees it.</p>
+        <p class="lede">Use this page with the unpacked Stoplight extension. API actions pause in the side panel before the server sees them; static images, scripts and stylesheets load without entering the queue.</p>
       </div>
       <div class="status">
         <span>Server receipts</span>
@@ -332,19 +345,35 @@ function pageHtml() {
             <span>Pause, edit header/body, then continue edited.</span>
           </button>
           <button id="send-queue">
-            <strong>Queue two requests</strong>
-            <span>Both should wait in Stoplight until Play All.</span>
+            <strong>Queue three requests</strong>
+            <span>All three should wait; Play All forwards originals, ignoring unsent drafts.</span>
           </button>
           <button id="send-text">
-            <strong>Send plain text</strong>
-            <span>Shows non-JSON textual body editing.</span>
+            <strong>Send Unicode text</strong>
+            <span>Shows Unicode textual body editing and unchanged preservation.</span>
+          </button>
+          <button id="send-urlencoded">
+            <strong>Send URL-encoded form</strong>
+            <span>Editable form values with Unicode and reserved characters.</span>
+          </button>
+          <button id="send-xml">
+            <strong>Send XML</strong>
+            <span>Editable XML request body.</span>
+          </button>
+          <button id="send-bodyless">
+            <strong>Send bodyless GET</strong>
+            <span>Continue without inventing a request body.</span>
           </button>
           <button id="send-form">
             <strong>Send multipart form</strong>
-            <span>Expected v0.1 behavior: inspect-only body.</span>
+            <span>Includes a binary file; expected v0.1 behavior: inspect-only body.</span>
+          </button>
+          <button id="send-binary">
+            <strong>Send binary payload</strong>
+            <span>Inspect only; Continue Unchanged preserves every byte.</span>
           </button>
           <button id="load-asset">
-            <strong>Load static asset</strong>
+            <strong>Load image, script and stylesheet</strong>
             <span>Expected v0.1 behavior: no paused queue noise.</span>
           </button>
           <button id="reset-log">
@@ -391,23 +420,54 @@ function pageHtml() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ order: 2 })
       });
+      runFetch("queue request 3", "/api/queue/3", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ order: 3 })
+      });
     });
 
     document.querySelector("#send-text").addEventListener("click", () => {
-      runFetch("plain text", "/api/plain-text", {
+      runFetch("Unicode text", "/api/plain-text", {
         method: "POST",
         headers: { "content-type": "text/plain" },
-        body: "manual payload from demo page"
+        body: "Hola 🌍 — café"
       });
+    });
+
+    document.querySelector("#send-urlencoded").addEventListener("click", () => {
+      runFetch("URL-encoded form", "/api/urlencoded", {
+        method: "POST", body: new URLSearchParams({ name: "María", note: "café + tea" })
+      });
+    });
+
+    document.querySelector("#send-xml").addEventListener("click", () => {
+      runFetch("XML", "/api/xml", {
+        method: "POST", headers: { "content-type": "application/xml" },
+        body: '<order status="original">café</order>'
+      });
+    });
+
+    document.querySelector("#send-bodyless").addEventListener("click", () => {
+      runFetch("bodyless GET", "/api/bodyless", { method: "GET" });
     });
 
     document.querySelector("#send-form").addEventListener("click", () => {
       const form = new FormData();
       form.append("alpha", "bravo");
       form.append("charlie", "delta");
+      form.append("file", new Blob([new Uint8Array([0, 127, 128, 254, 255])], { type: "application/octet-stream" }), "synthetic.bin");
       runFetch("multipart form", "/api/form", {
         method: "POST",
         body: form
+      });
+    });
+
+    document.querySelector("#send-binary").addEventListener("click", () => {
+      runFetch("binary payload", "/api/binary", {
+        method: "POST",
+        headers: { "content-type": "application/octet-stream" },
+        body: new Uint8Array([0, 1, 127, 128, 254, 255, 13, 10])
       });
     });
 
@@ -418,7 +478,18 @@ function pageHtml() {
       image.onload = () => append("info", "static asset loaded without fetch/XHR queue pressure");
       image.onerror = () => append("error", "static asset failed to load");
       document.querySelector(".actions").appendChild(image);
-      append("pending", "loading static asset via <img>");
+      const script = document.createElement("script");
+      script.src = "/asset.js?nonce=" + Date.now();
+      script.onload = () => append(document.documentElement.dataset.stoplightScriptLoaded === "yes" ? "info" : "error", "static script executed without entering the API queue");
+      script.onerror = () => append("error", "static script failed to load");
+      document.head.appendChild(script);
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "/asset.css?nonce=" + Date.now();
+      stylesheet.onload = () => append(getComputedStyle(document.documentElement).getPropertyValue("--stoplight-static-proof").trim() === "loaded" ? "info" : "error", "static stylesheet applied without entering the API queue");
+      stylesheet.onerror = () => append("error", "static stylesheet failed to load");
+      document.head.appendChild(stylesheet);
+      append("pending", "loading image, script and stylesheet");
     });
 
     document.querySelector("#reset-log").addEventListener("click", async () => {
@@ -439,7 +510,7 @@ function pageHtml() {
         const response = await fetch(url, options);
         const payload = await response.json();
         append("ok", "#" + id + " server received:\\n" + JSON.stringify(payload.record, null, 2));
-        await refreshCount();
+        count.textContent = String(Math.max(Number(count.textContent), payload.receivedCount));
       } catch (error) {
         append("error", "#" + id + " failed: " + (error && error.message ? error.message : String(error)));
       }

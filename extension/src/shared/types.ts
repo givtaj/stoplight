@@ -43,6 +43,7 @@ export interface EditableBody {
   kind: EditableBodyKind;
   text: string;
   editable: boolean;
+  captureStatus?: "complete" | "unavailable" | "truncated";
   encoding: string | null;
   reason: string | null;
   contentType: string | null;
@@ -183,7 +184,7 @@ export interface StoplightPreferences {
 
 export type PanelCommand =
   | { type: "requestState" }
-  | { type: "armActiveTab"; expectedTabId?: number | null }
+  | { type: "armActiveTab"; expectedTabId?: number | null; expectedTabUrl?: string | null }
   | { type: "detach" }
   | { type: "continueUnchanged"; requestId: string }
   | {

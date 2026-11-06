@@ -86,15 +86,23 @@ fn validate_headers(headers: &[HeaderDraft]) -> Result<(), String> {
         if header.name.is_empty() {
             return Err("Header name cannot be empty.".into());
         }
-        if header.name.contains(['\r', '\n', ':']) {
+        if !header
+            .name
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"!#$%&'*+-.^_`|~".contains(&byte))
+        {
             return Err(format!(
                 "Header `{}` contains invalid characters.",
                 header.name
             ));
         }
-        if header.value.contains(['\r', '\n']) {
+        if header
+            .value
+            .bytes()
+            .any(|byte| byte == 0x7f || (byte < 0x20 && byte != b'\t'))
+        {
             return Err(format!(
-                "Header `{}` contains newline characters in the value.",
+                "Header `{}` contains invalid control characters in the value.",
                 header.name
             ));
         }
@@ -127,6 +135,7 @@ mod tests {
             kind: Text,
             text: text.into(),
             editable: true,
+            capture_status: Default::default(),
             encoding: Some("utf-8".into()),
             reason: None,
             content_type: Some("text/plain".into()),
@@ -138,6 +147,7 @@ mod tests {
             kind: EditableBodyKind::Binary,
             text: text.into(),
             editable: false,
+            capture_status: Default::default(),
             encoding: Some("utf-8".into()),
             reason: Some("Binary payloads are inspect-only in v1.".into()),
             content_type: Some("application/octet-stream".into()),
@@ -191,6 +201,25 @@ mod tests {
         .unwrap_err();
 
         assert!(error.contains("cannot be empty"));
+    }
+
+    #[test]
+    fn rejects_invalid_header_tokens_and_control_characters() {
+        for (name, value) in [
+            ("bad name", "value"),
+            ("x-test", "safe\nunsafe"),
+            ("x-test", "nul\0byte"),
+        ] {
+            let result = build_continue_payload(ContinueBuildInput {
+                request_id: "request-1".into(),
+                headers: vec![HeaderDraft {
+                    name: name.into(),
+                    value: value.into(),
+                }],
+                body: editable_body("body"),
+            });
+            assert!(result.is_err(), "{name}: {value:?}");
+        }
     }
 
     #[test]

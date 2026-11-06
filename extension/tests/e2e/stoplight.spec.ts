@@ -10,11 +10,6 @@ import {
   waitForText,
 } from "./support";
 
-const STATIC_ASSET_SKIP_REASON =
-  "Static asset interception remains nondeterministic in this Chromium environment; keep it manual until request auto-continue is consistently observable in CI.";
-const MULTIPART_SKIP_REASON =
-  "Multipart interception remains nondeterministic in this Chromium environment; keep it manual until paused multipart requests are consistently observable in CI.";
-
 test.describe("Stoplight extension smoke", () => {
   test("loads the unpacked extension shell and background worker", async ({}, testInfo) => {
     const harness = await launchStoplightHarness(testInfo);
@@ -128,6 +123,48 @@ test.describe("Stoplight extension release flows", () => {
     }
   });
 
+  test("continues an edited text request with its body cleared", async ({}, testInfo) => {
+    const harness = await launchStoplightHarness(testInfo);
+    try {
+      const { server, sidePanel, targetPage } = harness;
+      await targetPage.bringToFront();
+      await armCurrentTabFromSidePanel(sidePanel, server.origin);
+      server.reset();
+
+      await targetPage.evaluate(() => {
+        const win = window as Window & {
+          __stoplightEmptyEditPromise?: Promise<string>;
+        };
+        win.__stoplightEmptyEditPromise = fetch("/api/empty-edit", {
+          method: "POST",
+          headers: { "content-type": "text/plain" },
+          body: "remove this body",
+        }).then((response) => response.text());
+      });
+
+      await expect(sidePanel.locator(".queue-item strong")).toHaveText("/api/empty-edit");
+      expect(server.requestsSnapshot).toHaveLength(0);
+      await expect(sidePanel.locator("#body-editor")).toHaveValue("remove this body");
+      await setTextAreaValue(sidePanel, "#body-editor", "");
+      await waitForText(sidePanel, "#request-phase", "edited, held");
+      await sidePanel.locator("#continue-edited-button").click();
+
+      const captured = await server.waitForRequest((request) => request.path === "/api/empty-edit");
+      expect(captured.bodyBytes).toEqual([]);
+      expect(captured.headers["content-type"]).toBe("text/plain");
+      expect(server.requestsSnapshot).toHaveLength(1);
+      await targetPage.evaluate(async () => {
+        await (window as Window & {
+          __stoplightEmptyEditPromise?: Promise<string>;
+        }).__stoplightEmptyEditPromise;
+      });
+      await expect(sidePanel.locator(".queue-item")).toHaveCount(0);
+      await waitForText(sidePanel, "#request-phase", "forwarded");
+    } finally {
+      await harness.close();
+    }
+  });
+
   test("detach clears a held request and shows detached phase", async ({}, testInfo) => {
     const harness = await launchStoplightHarness(testInfo);
     try {
@@ -227,7 +264,6 @@ test.describe("Stoplight extension release flows", () => {
   });
 
   test("auto-continues static asset requests", async ({}, testInfo) => {
-    test.skip(true, STATIC_ASSET_SKIP_REASON);
     const harness = await launchStoplightHarness(testInfo);
     try {
       const { server, sidePanel, targetPage } = harness;
@@ -235,15 +271,50 @@ test.describe("Stoplight extension release flows", () => {
       await targetPage.bringToFront();
       await armCurrentTabFromSidePanel(sidePanel, server.origin);
       await expect(sidePanel.locator("#tab-url")).toContainText(server.origin);
+      server.reset();
 
       await targetPage.evaluate(() => {
-        const img = new Image();
-        img.id = "stoplight-asset";
-        img.src = `/asset.png?nonce=${Date.now()}`;
-        document.body.appendChild(img);
+        const win = window as Window & {
+          __stoplightStaticControlPromise?: Promise<string>;
+        };
+        win.__stoplightStaticControlPromise = fetch("/api/static-control", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ held: true }),
+        }).then((response) => response.text());
       });
 
+      // A held API request proves interception is active while the image loads.
+      await expect(sidePanel.locator(".queue-item strong")).toHaveText("/api/static-control");
+      expect(server.requestsSnapshot).toHaveLength(0);
+      const imageSize = await targetPage.evaluate(async () => {
+        const img = new Image();
+        img.id = "stoplight-asset";
+        const loaded = new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("Static image failed to load."));
+        });
+        img.src = `/asset.png?nonce=${Date.now()}`;
+        document.body.appendChild(img);
+        await loaded;
+        await img.decode();
+        return { width: img.naturalWidth, height: img.naturalHeight };
+      });
+
+      expect(imageSize).toEqual({ width: 1, height: 1 });
       await server.waitForRequest((request) => request.path.startsWith("/asset.png"));
+      expect(server.requestsSnapshot).toHaveLength(1);
+      await expect(sidePanel.locator(".queue-item strong")).toHaveText("/api/static-control");
+      await waitForText(sidePanel, "#paused-count", "1");
+      await waitForText(sidePanel, "#status-pill", "attached");
+
+      await continueUnchangedFromSidePanel(sidePanel);
+      await server.waitForRequest((request) => request.path === "/api/static-control");
+      await targetPage.evaluate(async () => {
+        await (window as Window & {
+          __stoplightStaticControlPromise?: Promise<string>;
+        }).__stoplightStaticControlPromise;
+      });
       await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(0);
       await waitForText(sidePanel, "#paused-count", "0");
     } finally {
@@ -252,7 +323,6 @@ test.describe("Stoplight extension release flows", () => {
   });
 
   test("marks multipart form requests as inspect-only", async ({}, testInfo) => {
-    test.skip(true, MULTIPART_SKIP_REASON);
     const harness = await launchStoplightHarness(testInfo);
     try {
       const { server, sidePanel, targetPage } = harness;
@@ -260,31 +330,115 @@ test.describe("Stoplight extension release flows", () => {
       await targetPage.bringToFront();
       await armCurrentTabFromSidePanel(sidePanel, server.origin);
       await expect(sidePanel.locator("#tab-url")).toContainText(server.origin);
+      server.reset();
 
-      await targetPage.evaluate(() => {
+      const expected = await targetPage.evaluate(async () => {
         const form = new FormData();
         form.append("alpha", "bravo");
         form.append("charlie", "delta");
+        form.append("attachment", new Blob([new Uint8Array([0, 128, 255, 13, 10])], {
+          type: "application/octet-stream",
+        }), "sample.bin");
 
-        void fetch("/api/form", {
+        // Capture the browser's actual boundary and binary file bytes before
+        // sending the same Request, so unchanged means byte-for-byte unchanged.
+        const request = new Request(new URL("/api/form", location.href), {
           method: "POST",
           body: form,
         });
+        const bytes = Array.from(new Uint8Array(await request.clone().arrayBuffer()));
+        const win = window as Window & {
+          __stoplightMultipartPromise?: Promise<string>;
+        };
+        win.__stoplightMultipartPromise = fetch(request).then((response) => response.text());
+        return { bytes, contentType: request.headers.get("content-type") };
       });
 
       await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(1);
       expect(server.requestsSnapshot).toHaveLength(0);
 
-      await waitForText(sidePanel, "#body-hint", "Multipart payloads are inspect-only in v1.");
+      await expect(sidePanel.locator("#body-hint")).toContainText("Multipart payloads are inspect-only in v1.");
       await expect(sidePanel.locator("#body-editor")).toBeDisabled();
+      await expect(sidePanel.locator("#headers-editor")).toBeDisabled();
+      await expect(sidePanel.locator("#continue-edited-button")).toBeDisabled();
+      await expect(sidePanel.locator("#continue-unchanged-button")).toBeEnabled();
 
       await continueUnchangedFromSidePanel(sidePanel);
-      await server.waitForRequest((request) => request.path === "/api/form");
-      expect(server.requestsSnapshot[0]?.body).toContain('name="alpha"');
-      expect(server.requestsSnapshot[0]?.body).toContain("bravo");
+      const captured = await server.waitForRequest((request) => request.path === "/api/form");
+      expect(captured.headers["content-type"]).toBe(expected.contentType);
+      expect(captured.bodyBytes).toEqual(expected.bytes);
+      expect(server.requestsSnapshot).toHaveLength(1);
+      await targetPage.evaluate(async () => {
+        await (window as Window & {
+          __stoplightMultipartPromise?: Promise<string>;
+        }).__stoplightMultipartPromise;
+      });
       await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(0);
+      await waitForText(sidePanel, "#request-phase", "forwarded");
     } finally {
       await harness.close();
     }
   });
+
+  for (const { label, contentType, bytes } of [
+    {
+      label: "non-UTF-8",
+      contentType: "application/octet-stream",
+      bytes: [0, 1, 127, 128, 192, 255, 13, 10, 0],
+    },
+    { label: "empty", contentType: "application/octet-stream", bytes: [] },
+    {
+      label: "PNG",
+      contentType: "image/png",
+      bytes: Array.from(Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgaPj/HwAEggJ/59habAAAAABJRU5ErkJggg==",
+        "base64",
+      )),
+    },
+  ]) {
+    test(`keeps ${label} binary requests inspect-only and forwards unchanged bytes`, async ({}, testInfo) => {
+      const harness = await launchStoplightHarness(testInfo);
+      try {
+        const { server, sidePanel, targetPage } = harness;
+        await targetPage.bringToFront();
+        await armCurrentTabFromSidePanel(sidePanel, server.origin);
+        server.reset();
+
+        await targetPage.evaluate(({ payload, mimeType }) => {
+          const win = window as Window & {
+            __stoplightBinaryPromise?: Promise<string>;
+          };
+          win.__stoplightBinaryPromise = fetch("/api/binary", {
+            method: "POST",
+            headers: { "content-type": mimeType },
+            body: new Uint8Array(payload),
+          }).then((response) => response.text());
+        }, { payload: bytes, mimeType: contentType });
+
+        await expect(sidePanel.locator(".queue-item strong")).toHaveText("/api/binary");
+        expect(server.requestsSnapshot).toHaveLength(0);
+        await waitForText(sidePanel, "#request-phase", "held");
+        await expect(sidePanel.locator("#body-hint")).toContainText("Binary payloads are inspect-only in v1.");
+        await expect(sidePanel.locator("#body-editor")).toBeDisabled();
+        await expect(sidePanel.locator("#headers-editor")).toBeDisabled();
+        await expect(sidePanel.locator("#continue-edited-button")).toBeDisabled();
+        await expect(sidePanel.locator("#continue-unchanged-button")).toBeEnabled();
+
+        await continueUnchangedFromSidePanel(sidePanel);
+        const captured = await server.waitForRequest((request) => request.path === "/api/binary");
+        expect(captured.headers["content-type"]).toBe(contentType);
+        expect(captured.bodyBytes).toEqual(bytes);
+        expect(server.requestsSnapshot).toHaveLength(1);
+        await targetPage.evaluate(async () => {
+          await (window as Window & {
+            __stoplightBinaryPromise?: Promise<string>;
+          }).__stoplightBinaryPromise;
+        });
+        await expect.poll(() => sidePanel.locator(".queue-item").count()).toBe(0);
+        await waitForText(sidePanel, "#request-phase", "forwarded");
+      } finally {
+        await harness.close();
+      }
+    });
+  }
 });

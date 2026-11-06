@@ -75,8 +75,9 @@ appRoot.innerHTML = `
             <p class="section-label">Paused requests</p>
             <h3>Queue</h3>
           </div>
-          <button id="play-all-button" class="button button-ghost">Play All</button>
+          <button id="play-all-button" class="button button-ghost">Play All Originals</button>
         </div>
+        <p class="body-hint">Play All forwards each original request unchanged, in arrival order. Editor drafts are not applied.</p>
         <div id="queue-list" class="queue-list"></div>
       </section>
 
@@ -159,7 +160,7 @@ void loadStoplightWasm()
   });
 
 refs.armButton.addEventListener("click", () =>
-  send({ type: "armActiveTab", expectedTabId: state.armTarget.tabId }),
+  send({ type: "armActiveTab", expectedTabId: state.armTarget.tabId, expectedTabUrl: state.armTarget.tabUrl }),
 );
 refs.detachButton.addEventListener("click", () => send({ type: "detach" }));
 refs.saveAllowlistButton.addEventListener("click", () =>
@@ -177,7 +178,7 @@ refs.continueUnchangedButton.addEventListener("click", () => {
 });
 refs.continueEditedButton.addEventListener("click", () => {
   const request = getSelectedRequest();
-  if (!request) {
+  if (!request?.body.editable) {
     return;
   }
 
@@ -302,7 +303,7 @@ function render(): void {
   refs.statusPill.textContent = state.debuggerStatus;
   refs.statusPill.className = `status-pill ${state.debuggerStatus}`;
 
-  refs.armButton.disabled = state.debuggerStatus === "arming";
+  refs.armButton.disabled = state.debuggerStatus === "arming" || state.armTarget.status !== "ready";
   refs.detachButton.disabled = !state.tabId;
   refs.playAllButton.disabled = state.queue.length === 0;
 
@@ -375,15 +376,20 @@ function renderDetail(): void {
     <span class="meta-pill">${escapeHtml(request.body.kind)}</span>
     <span class="meta-pill">${escapeHtml(request.origin ?? "unknown origin")}</span>
   `;
-  refs.headersEditor.disabled = false;
+  refs.headersEditor.disabled = !request.body.editable;
   refs.bodyEditor.disabled = !request.body.editable;
   refs.headersEditor.value = draft.headerText;
   refs.bodyEditor.value = draft.bodyText;
   refs.bodyHint.textContent = request.body.editable
     ? "Editable textual body. Continue Edited will send the latest header and body draft."
     : request.body.reason ?? "This body is inspect-only and can only continue unchanged.";
+  if (request.body.captureStatus === "unavailable") {
+    refs.bodyHint.textContent += " Body preview is unavailable; the empty editor does not mean the original request was empty.";
+  } else if (request.body.captureStatus === "truncated") {
+    refs.bodyHint.textContent += " Body preview is truncated; only the original request can be forwarded unchanged.";
+  }
   refs.continueUnchangedButton.disabled = false;
-  refs.continueEditedButton.disabled = false;
+  refs.continueEditedButton.disabled = !request.body.editable;
 
   renderDiff(request);
   renderRequestPhase();

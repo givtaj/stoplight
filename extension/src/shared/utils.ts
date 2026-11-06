@@ -1,6 +1,9 @@
 import type { HeaderDraft } from "./types";
 
 export function parseHeaderText(raw: string): HeaderDraft[] {
+  if (raw.replace(/\r\n/gu, "\n").includes("\r")) {
+    throw new Error("Header values cannot contain carriage returns.");
+  }
   return raw
     .split(/\r?\n/u)
     .map((line) => line.trim())
@@ -8,13 +11,17 @@ export function parseHeaderText(raw: string): HeaderDraft[] {
     .map((line) => {
       const separatorIndex = line.indexOf(":");
       if (separatorIndex < 0) {
-        return { name: line, value: "" };
+        throw new Error("Each header must use name: value on its own line.");
       }
-
-      return {
-        name: line.slice(0, separatorIndex).trim(),
-        value: line.slice(separatorIndex + 1).trim(),
-      };
+      const name = line.slice(0, separatorIndex).trim();
+      const value = line.slice(separatorIndex + 1).trim();
+      if (!/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/u.test(name)) {
+        throw new Error("Header name contains invalid characters.");
+      }
+      if (/[\u0000-\u0008\u000a-\u001f\u007f]/u.test(value)) {
+        throw new Error("Header value contains invalid control characters.");
+      }
+      return { name, value };
     });
 }
 

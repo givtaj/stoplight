@@ -6,3 +6,7 @@ extension/playwright-report/
 extension/test-results/
 extension/.vite/
 extension/src/generated/stoplight_wasm/
+# Local verification scratch and raw receipts. Publish reviewed release summaries
+# under docs/release/ and distribute the approved ZIP as a release asset.
+outputs/release-verification/
+outputs/v0.1-qa-2026-11-06/
