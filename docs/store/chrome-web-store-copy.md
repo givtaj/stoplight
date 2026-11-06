@@ -33,15 +33,15 @@ The side panel shows the armed tab, the allowlist of origins that are eligible f
 
 ### `debugger`
 
-Stoplight uses the Chrome Debugger API to attach to the active tab and control the DevTools Protocol `Fetch` and `Network` domains.
+Stoplight uses the Chrome Debugger API to attach to the explicitly armed tab and control request interception through the DevTools Protocol `Fetch` and `Network` domains. It also uses `Runtime.evaluate` to read that tab’s current URL and, when needed, its title so the selected target can be validated.
 
 That permission is required because MV3 extensions cannot rely on blocking `webRequest` for this use case. The debugger permission lets Stoplight pause request-stage network traffic, inspect it, and continue it after edits are applied.
 
-Stoplight does not use the debugger permission for general browsing or page content access. It only attaches to the single tab the user arms.
+Stoplight attaches only to the single tab the user arms. Its page metadata reads are limited to the current URL and title; it does not inspect other page content.
 
 ### `tabs`
 
-Required to show and validate the website tab Stoplight is about to arm, especially when the Stoplight panel itself has focus. Stoplight uses tab URL and title metadata to reject unsupported Chrome pages and its own extension panel before attaching the debugger.
+Required to show and validate the website tab Stoplight is about to arm, especially when the Stoplight panel itself has focus. Stoplight uses tab URL and title metadata to reject known unsupported Chrome pages and its own extension panel before attaching the debugger. If Chrome initially hides an active tab’s URL, the requested attachment permits URL validation before interception is enabled.
 
 Stoplight does not use this permission to read page content or monitor all browsing. It uses it to present the intended target clearly and attach only after the user arms that target.
 

@@ -1,0 +1,50 @@
+{
+  "recorded_at_utc": "2026-11-06T09:49:33.181812+00:00",
+  "result": "PASS native first-profile acceptance; detached profile retained for coordinated verification",
+  "build_source_sha": "48c3d6f60e7b14d1e0b908decda2b67fda2a5cac",
+  "harness_commit": "34b0e88fc5665fd54af0f9834b665c305a308d59",
+  "zip_sha256": "0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405",
+  "browser": "Google Chrome 156.0.8078.80 Official Build arm64",
+  "os": "macOS26.0.1 Build25A362",
+  "received_count": 11,
+  "checks": {
+    "native_panel": "Toolbar action opened actual Chrome side panel with correct target; ordinary extension tab was not used.",
+    "held_before_send": "Independent receiving server log empty before first continuation.",
+    "edited": "Receipt1 exact edited JSON and x-stoplight header.",
+    "unchanged": "Receipt2 original Unicode and original application headers despite edited local draft.",
+    "fifo": "3 requests displayed1,2,3 and absent at receiver beforePlayAll; receipts3\u20135 originals in1,2,3order; unsent selected draft ignored.",
+    "binary_and_static": "Binary header/body/ContinueEdited disabled; static image decoded, script executed and stylesheet applied while API remainedheld; receipt6 exact00017f80feff0d0a.",
+    "devtools": "Actual DevTools frontend opened on page while requestheld; Chrome156 coexisted without detaching; receipt7 original Unicode afterContinueUnchanged.",
+    "detach": "ExplicitDetach while JSONheld clearedqueue/detached and released original receipt8; not a cancellation claim.",
+    "disable": "Old unpacked entry toggledOff afterDetach; normal request delivered asreceipt9.",
+    "manual_replacement": "Old entry removed through native confirmation; same verifiedZIP separatelyextracted, Loadunpacked replacement; initialidle queue0; normalrequestreceipt10 beforearming.",
+    "preference_reset": "Savedtwo-origin allowlist beforeoldremoval; replacementidle0origins, then explicitarm restoreddefaultonlycurrentorigin(1), not old2.",
+    "recovery": "Replacementexplicitarm held Unicode, ContinueUnchanged receipt11, thenDetach.",
+    "artifact_integrity": "All13 extractedfiles match pretesthashes in original and replacementfolders; ZIPchecksumunchanged."
+  },
+  "limits": [
+    "Same-candidate manualreplacement rehearsal, not a cross-version migration or previous-release rollback.",
+    "Native selected first-profile flow supplements36-case automatedmatrix; independent second-profile/native repeat is separate.",
+    "Network-source review and bounded browser observations are separate; no claim of exhaustive egress capture."
+  ],
+  "numeric_extension_version": "0.1.0.1",
+  "version_name": "0.1.0-alpha.1",
+  "profile": {
+    "identifier": "Stoplight Alpha1 QA / Profile 2",
+    "fresh_signed_out": true,
+    "default_other_extension": "Google Docs Offline"
+  },
+  "screenshots": [
+    {
+      "path": "../screenshots/alpha.1/03-native-edited-held.png",
+      "sha256": "1ed02341fe6cba16170bf7c3c88fffbdc3a9322633193a341c689d6b06690179",
+      "bytes": 632572
+    },
+    {
+      "path": "../screenshots/alpha.1/06-native-devtools-held.png",
+      "sha256": "e0e77e920fd0b405f8c62681e28b6dc4918455e956cc7c2c99bdf70d86a42a0d",
+      "bytes": 886871
+    }
+  ],
+  "cleanup": "Last observed replacement state: detached with empty queue. Optional final replacement removal outcome was unobserved when the Mac locked; the QA profile was retained and fixture server stopped. Old-entry removal and manual replacement had already passed. This is not a complete QA-profile removal claim."
+}

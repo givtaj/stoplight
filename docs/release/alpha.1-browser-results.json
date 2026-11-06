@@ -1,0 +1,451 @@
+{
+  "compiled_source": "48c3d6f60e7b14d1e0b908decda2b67fda2a5cac",
+  "test_harness_source": "34b0e88fc5665fd54af0f9834b665c305a308d59",
+  "zip": "stoplight-v0.1.0-alpha.1.zip",
+  "zip_sha256": "0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405",
+  "browser": "Chrome for Testing 145.0.7632.6",
+  "os": "macOS 26.0.1 ARM64",
+  "stats": {
+    "startTime": "2026-11-06T09:37:31.691Z",
+    "duration": 52839.344999999994,
+    "expected": 36,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "scope": "Automated real-browser requests and receiving-server assertions; native side-panel shelf is verified separately. Fault injection is explicit in named recovery cases.",
+  "cases": [
+    {
+      "file": "alpha-capture.spec.ts",
+      "name": "B6 oversized textual capture stays inspect-only and preserves the full original bytes",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 2731,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-capture.spec.ts",
+      "name": "B6 unavailable streaming capture is visibly inspect-only and forwards original bytes",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1919,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Alpha B4 Play All sends three originals once in arrival order despite a draft",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1532,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Alpha B5 image stylesheet and script load while an API request remains held",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1442,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "only the armed tab and allowed origin pause across HTTP and HTTPS",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1962,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "rejects stale target identity before explicit review and re-arm",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1541,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Chrome pages and the extension page cannot become an accidental arm target",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1085,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "same-tab navigation invalidates the previously reviewed URL",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1390,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "JSON Fetch HTTP",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1356,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Unicode text XHR HTTPS",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1486,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "urlencoded Fetch HTTP",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1422,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "XML XHR HTTPS",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1518,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "nonempty to empty Fetch HTTPS",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1588,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "bodyless fetch preserves zero bytes and application headers",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1670,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "bodyless xhr preserves zero bytes and application headers",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1529,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "Continue Unchanged ignores edited body and header drafts",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1455,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "rejects invalid headers \"bad name: rejected\"",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1623,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "rejects invalid headers \"x-stoplight: safe\\ninjected-without-colon\"",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1737,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-core.spec.ts",
+      "name": "a continuation transport failure is visible and recovers unchanged",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1660,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-lifecycle.spec.ts",
+      "name": "B8/B9 detach settles held traffic, clears captured payloads and permits rearm",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1425,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-lifecycle.spec.ts",
+      "name": "B8 closing the armed target destroys its transport and a new tab can be armed",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1340,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-lifecycle.spec.ts",
+      "name": "B8 stopping the extension worker releases held traffic and requires explicit rearm",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1659,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-lifecycle.spec.ts",
+      "name": "B9 closing and reopening the same browser profile clears captured session data",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 2014,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-lifecycle.spec.ts",
+      "name": "B10 detach then extension reload preserves normal traffic without silently rearming",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1560,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "alpha-lifecycle.spec.ts",
+      "name": "B10 detach then uninstall removes control and ordinary requests keep working",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1135,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "loads the unpacked extension shell and background worker",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 830,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "arms the shown website target when the extension panel tab is active",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1117,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "arms the active tab and continues an edited request",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1143,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "continues an edited text request with its body cleared",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1146,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "detach clears a held request and shows detached phase",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1094,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "releases queued requests in arrival order",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1163,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "auto-continues static asset requests",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1180,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "marks multipart form requests as inspect-only",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1138,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "keeps non-UTF-8 binary requests inspect-only and forwards unchanged bytes",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1148,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "keeps empty binary requests inspect-only and forwards unchanged bytes",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1274,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "stoplight.spec.ts",
+      "name": "keeps PNG binary requests inspect-only and forwards unchanged bytes",
+      "expected_status": "passed",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1104,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

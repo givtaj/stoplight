@@ -22,7 +22,7 @@ Stoplight stores the following browser-local data:
 
 ## Retention and Clearing
 
-Continuing a request removes it from the stored queue. Detaching clears the queue and its captured headers/bodies, but the session can retain tab URL/title, origin allowlist, counters and status metadata. Editor drafts live in the panel's memory, rather than the persistent origin preferences.
+On successful storage writes, continuing a request removes it from the stored queue, and detaching clears the queue and its captured headers/bodies. The session can retain tab URL/title, origin allowlist, counters and status metadata. A storage-write failure produces an error; the previous stored snapshot may remain. Disable or remove Stoplight, or restart Chrome, to clear session storage if normal clearing fails. Editor drafts live in the panel's memory, rather than the persistent origin preferences.
 
 Chrome clears `storage.session` when the extension is disabled, reloaded or updated, and when the browser restarts. Origin allowlists in `storage.local` survive those actions. Removing Stoplight clears its local extension storage. Clearing ordinary browsing history is not a reliable way to remove extension preferences. These storage lifetimes follow [Chrome's storage documentation](https://developer.chrome.com/docs/extensions/reference/api/storage#storage-areas); the release receipt records which lifecycle paths were exercised.
 
@@ -32,7 +32,7 @@ Stoplight does not require its own backend service for v0.1.
 
 The extension works by attaching to the active tab through Chrome's Debugger API and using the DevTools Protocol `Fetch` and `Network` domains to pause matching outgoing requests. It does not proxy traffic through an external server.
 
-Stoplight also reads tab URL and title metadata so the side panel can show the website target before arming and reject unsupported pages such as `chrome://` URLs or Stoplight's own panel.
+Stoplight also reads tab URL and title metadata so the side panel can show the website target before arming and reject known unsupported pages such as `chrome://` URLs or Stoplight's own panel. When Chrome initially hides the URL, validation occurs after the requested debugger attachment but before interception is enabled. It validates the attached target’s current URL and, when needed, its title through the debugger’s `Runtime.evaluate` command; it does not inspect other page content.
 
 ## Data Sharing
 

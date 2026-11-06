@@ -39,16 +39,21 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## In Progress
 
-- [ ] Browser evidence for static assets, multipart inspect-only behavior, and binary handling. The historical 2026-10-09 Playwright result was `5 passed, 2 skipped`; manual proof on the exact candidate may close alpha behavior gates while automation remains backlog.
-- [ ] Resolve the alpha source-review concerns: empty-body edits, binary/missing-body classification, unchanged request preservation and held-request recovery.
-- [ ] Manual Chrome acceptance on a clean Chrome profile. No acceptance artifact is present in the workspace as of 2026-10-09.
+- [ ] Finish native acceptance in two fresh profiles, record A6 GO, publish `v0.1.0-alpha.1`, and close anonymous public-delivery gate A7. Current evidence: [alpha verification receipt](docs/release/alpha.1-verification.md).
 
 ## Next Up
 
-- [ ] Complete A1–A6 and package `v0.1.0-alpha.1`; verify public delivery under A7 before announcing a verified alpha.
-- [ ] Capture marketing screenshots for later store publication; they are not a developer-alpha blocker.
+- [ ] Broaden browser/OS coverage after the first developer alpha.
+- [ ] Prepare Chrome Web Store submission and marketing screenshots separately.
 
 ## Log
+
+### 2026-11-06 — Frozen alpha verification
+
+- Compiled source `48c3d6f` passed independent cold-build checks: 24 Rust tests, 37 TypeScript tests, typecheck, production build and zero npm audit findings. Hosted CI passed for that exact revision.
+- Packaged `stoplight-v0.1.0-alpha.1.zip`, SHA-256 `0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405`. Independent extraction/inventory checks passed.
+- All 36 final browser cases passed with no skips, failures or retries. Three reviewed test-harness corrections were committed separately as `34b0e88`; no runtime or build/package input changed. Native and public-delivery outcomes are recorded in the selected release receipt.
+
 
 ### 2026-11-06 — Public alpha completion
 
