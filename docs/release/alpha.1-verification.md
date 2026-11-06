@@ -22,11 +22,11 @@ The ZIP was packaged from the independently built source export. All ten runtime
 | Gate | Current result | Evidence |
 | --- | --- | --- |
 | A1 Clean source/build | PASS for compiled source | Clean export verified against all 69 tracked blobs. Formatting, locked workspace tests (24), npm ci, typecheck, unit tests (37) and production build passed. [Hosted CI](https://github.com/givtaj/stoplight/actions/runs/42193482976) passed both Rust and extension jobs at the same SHA. |
-| A2 Browser matrix/repeat | Automated matrix PASS; native checks pending | All 36 browser cases passed in 52.8 seconds with zero failures, skips or retries on the exact ZIP. Both final fresh-profile native runs are required. |
+| A2 Browser matrix/repeat | Automated and first native PASS; second native pending | All 36 browser cases passed in 52.8 seconds with zero failures, skips or retries on the exact ZIP. First native Chrome 156 acceptance passed. Independent B2–B4 repetition passed all 13 cases in 23.5 seconds, again without failures/skips/retries. The second native-profile check is required. |
 | A3 Defects/dependencies | Source checks passed; acceptance pending | [Targeted source review](source-review-2026-11-06.md) closed R1–R4 and arm-identity concerns. Fresh npm audit reports zero findings. A Rust advisory scanner was unavailable; no Rust scanner pass is claimed. |
 | A4 Package/install | PASS | Independent ZIP inspection checked safe paths, no symlinks/cache directories, loadable manifest root, referenced assets/WASM, source identity and all hashes. The exact ZIP loaded through native Load unpacked in a fresh profile. |
 | A5 Public instructions/privacy | PASS | README covers ZIP install, five permissions, manual replacement/removal and feedback. Privacy copy states captured data and retention. Public repository is MIT licensed with Issues enabled. The documented disable/remove/separate-folder replacement procedure passed; preferences reset and no silent re-arm occurred. Permission and privacy wording passed independent review. |
-| A6 Decision | NO-GO pending second native/core repeat | The maintainer authorized conditional publication after all thresholds pass. This is not a release approval yet. |
+| A6 Decision | NO-GO pending second native repeat | The maintainer authorized conditional publication after all thresholds pass. This is not a release approval yet. |
 | A7 Public acquisition | Not run | No alpha tag or release asset has been published. |
 
 ## Environments and boundaries
