@@ -129,9 +129,12 @@ test.describe("Developer alpha lifecycle and retention", () => {
     }
   });
 
-  test("B8 closing the armed target settles transport and a new tab can be armed", async ({}, testInfo) => {
+  test("B8 closing the armed target destroys its transport and a new tab can be armed", async ({}, testInfo) => {
     const harness = await launchStoplightHarness(testInfo);
     const { context, sidePanel, targetPage, server } = harness;
+    const browser = context.browser();
+    if (!browser) throw new Error("Target-closure verification requires a browser CDP session.");
+    const cdp = await browser.newBrowserCDPSession();
     const terminal: Array<{ outcome: string; failure?: string | null }> = [];
     context.on("requestfailed", (request) => {
       if (request.url().endsWith("/api/close-target")) {
@@ -146,8 +149,16 @@ test.describe("Developer alpha lifecycle and retention", () => {
       server.reset();
       await beginHeldRequest(sidePanel, targetPage, "/api/close-target");
       expect(server.requestsSnapshot).toHaveLength(0);
+      const { targetInfos } = await cdp.send("Target.getTargets");
+      const matchingTargets = targetInfos.filter((target) =>
+        target.type === "page" && target.url === targetPage.url(),
+      );
+      expect(matchingTargets).toHaveLength(1);
+      const closedTargetId = matchingTargets[0]!.targetId;
       await targetPage.close();
-      await expect.poll(() => terminal.length).toBe(1);
+      expect(targetPage.isClosed()).toBe(true);
+      await expect.poll(async () => (await cdp.send("Target.getTargets")).targetInfos
+        .some((target) => target.targetId === closedTargetId)).toBe(false);
       await waitForText(sidePanel, "#status-pill", "detached");
       await expect(sidePanel.locator(".queue-item")).toHaveCount(0);
       const afterClose = await readStorage(sidePanel);
@@ -157,8 +168,19 @@ test.describe("Developer alpha lifecycle and retention", () => {
       const normal = await startFixtureRequest(replacement, { url: "/api/new-tab-unarmed" });
       expect(await waitForFixtureRequest(replacement, normal)).toMatchObject({ ok: true, status: 200 });
       await assertRearmWorks(sidePanel, replacement, server.origin);
-      await record(testInfo, "target-close-recovery", { terminal, afterClose, receipts: server.requestsSnapshot });
+      expect(server.requestsSnapshot.filter((request) => request.path === "/api/close-target")).toHaveLength(0);
+      await record(testInfo, "target-close-recovery", {
+        closedTargetId,
+        pageClosed: targetPage.isClosed(),
+        targetAbsentFromCDP: true,
+        networkTerminalCallbacks: terminal,
+        afterClose,
+        receipts: server.requestsSnapshot,
+        observationWindow: "No closed-target request arrived through replacement-tab normal traffic, rearm, continuation and detach.",
+        claimBoundary: "Page and CDP target destruction prove transport teardown. Chromium may emit no requestfinished/requestfailed callback for a target destroyed while Fetch-paused; an empty callback list is not recorded as a synthetic network failure.",
+      });
     } finally {
+      await cdp.detach().catch(() => undefined);
       await harness.close();
     }
   });
@@ -276,9 +298,12 @@ test.describe("Developer alpha lifecycle and retention", () => {
   });
 
   test("B10 detach then uninstall removes control and ordinary requests keep working", async ({}, testInfo) => {
-    const harness = await launchStoplightHarness(testInfo);
+    const harness = await launchStoplightHarness(testInfo, { installViaCdp: true });
     const { context, sidePanel, targetPage, server, extensionId } = harness;
-    const cdp = await context.newCDPSession(targetPage);
+    const browser = context.browser();
+    if (!browser) throw new Error("Uninstall verification requires a browser CDP session.");
+    // Extensions is a browser-level domain; page-target sessions reject it.
+    const cdp = await browser.newBrowserCDPSession();
     try {
       await arm(sidePanel, targetPage, server.origin);
       server.reset();
@@ -296,7 +321,9 @@ test.describe("Developer alpha lifecycle and retention", () => {
       expect(receipts.map((request) => request.path)).toEqual(["/api/before-uninstall", "/api/after-uninstall"]);
       await record(testInfo, "uninstall-recovery", {
         extensionId, receipts,
-        scope: "CDP uninstall of this disposable profile's unpacked extension after explicit detach; native disable/remove UI checked separately.",
+        installedFrom: harness.extensionPath,
+        installationMethod: "Browser-target Extensions.loadUnpacked of the same candidate directory",
+        scope: "Browser-target CDP uninstall of this disposable profile's unpacked extension after explicit detach; native disable/remove UI checked separately.",
       });
     } finally {
       await cdp.detach().catch(() => undefined);

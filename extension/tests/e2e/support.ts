@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
+import { createSecureServer as createHttp2Server, type Http2ServerRequest, type Http2ServerResponse } from "node:http2";
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -12,6 +13,7 @@ export type CapturedRequest = {
   headers: Record<string, string | string[] | undefined>;
   body: string;
   bodyBytes: number[];
+  httpVersion: string;
   receivedAtMs: number;
 };
 
@@ -32,11 +34,11 @@ export class TestServer {
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgaPj/HwAEggJ/59habAAAAABJRU5ErkJggg==",
     "base64",
   );
-  private readonly server: ReturnType<typeof createServer> | ReturnType<typeof createHttpsServer>;
+  private readonly server: ReturnType<typeof createServer> | ReturnType<typeof createHttpsServer> | ReturnType<typeof createHttp2Server>;
   private certificateDirectory?: string;
 
-  private constructor(private port: number, private readonly secure: boolean) {
-    const listener = (req: IncomingMessage, res: ServerResponse) => {
+  private constructor(private port: number, private readonly secure: boolean, http2: boolean) {
+    const listener = (req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse) => {
       void this.handleRequest(req, res);
     };
     if (secure) {
@@ -47,14 +49,17 @@ export class TestServer {
       const config = path.join(this.certificateDirectory, "openssl.cnf");
       fs.writeFileSync(config, "[req]\ndistinguished_name=dn\nx509_extensions=extensions\nprompt=no\n[dn]\nCN=localhost\n[extensions]\nsubjectAltName=DNS:localhost,IP:127.0.0.1\n");
       execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-keyout", key, "-out", cert, "-config", config], { stdio: "ignore" });
-      this.server = createHttpsServer({ key: fs.readFileSync(key), cert: fs.readFileSync(cert) }, listener);
+      const tls = { key: fs.readFileSync(key), cert: fs.readFileSync(cert) };
+      this.server = http2
+        ? createHttp2Server({ ...tls, allowHTTP1: true }, listener)
+        : createHttpsServer(tls, listener);
     } else {
       this.server = createServer(listener);
     }
   }
 
-  static async create(options: { https?: boolean } = {}): Promise<TestServer> {
-    const server = new TestServer(0, options.https ?? false);
+  static async create(options: { https?: boolean; http2?: boolean } = {}): Promise<TestServer> {
+    const server = new TestServer(0, Boolean(options.https || options.http2), options.http2 ?? false);
     await new Promise<void>((resolve, reject) => {
       server.server.once("error", reject);
       server.server.listen(0, "127.0.0.1", () => resolve());
@@ -132,14 +137,18 @@ export class TestServer {
     return found;
   }
 
-  private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  private async handleRequest(req: IncomingMessage | Http2ServerRequest, res: ServerResponse | Http2ServerResponse): Promise<void> {
     const url = new URL(req.url ?? "/", this.origin);
     const body = await readBody(req);
+    const writeHead = (status: number, headers: Record<string, string> = {}) => {
+      res.statusCode = status;
+      for (const [name, value] of Object.entries(headers)) res.setHeader(name, value);
+    };
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", req.headers["access-control-request-headers"] ?? "*");
     if (req.method === "OPTIONS") {
-      res.writeHead(204);
+      writeHead(204);
       res.end();
       return;
     }
@@ -150,11 +159,12 @@ export class TestServer {
       headers: req.headers,
       body: body.toString("utf8"),
       bodyBytes: Array.from(body),
+      httpVersion: req.httpVersion,
       receivedAtMs: Date.now(),
     });
 
     if (url.pathname === "/asset.png") {
-      res.writeHead(200, {
+      writeHead(200, {
         "Content-Type": "image/png",
         "Cache-Control": "no-store",
       });
@@ -163,24 +173,24 @@ export class TestServer {
     }
 
     if (url.pathname === "/asset.css") {
-      res.writeHead(200, { "Content-Type": "text/css", "Cache-Control": "no-store" });
+      writeHead(200, { "Content-Type": "text/css", "Cache-Control": "no-store" });
       res.end("#static-style-proof { color: rgb(12, 34, 56); }");
       return;
     }
 
     if (url.pathname === "/asset.js") {
-      res.writeHead(200, { "Content-Type": "text/javascript", "Cache-Control": "no-store" });
+      writeHead(200, { "Content-Type": "text/javascript", "Cache-Control": "no-store" });
       res.end("window.__stoplightStaticScriptLoaded = true;");
       return;
     }
 
     if (url.pathname === "/") {
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
       res.end(`<!doctype html><html><head><meta charset="utf-8"><link rel="icon" href="data:,"><title>Stoplight Test</title></head><body><main id="app"></main></body></html>`);
       return;
     }
 
-    res.writeHead(200, {
+    writeHead(200, {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
     });
@@ -196,7 +206,7 @@ export class TestServer {
 
 export async function launchStoplightHarness(
   testInfo: TestInfo,
-  options: { https?: boolean } = {},
+  options: { https?: boolean; http2?: boolean; installViaCdp?: boolean } = {},
 ): Promise<StoplightHarness> {
   const server = await TestServer.create(options);
   const extensionPath = resolveExtensionPath();
@@ -217,9 +227,23 @@ export async function launchStoplightHarness(
   };
   let launchedContext: BrowserContext | undefined;
   try {
-    const context = await launchHarnessContext(profileDir, extensionPath);
+    const context = await launchHarnessContext(profileDir, extensionPath, options);
     launchedContext = context;
+    let installedExtensionId: string | undefined;
+    if (options.installViaCdp) {
+      const browser = context.browser();
+      if (!browser) throw new Error("CDP unpacked installation requires a browser session.");
+      const cdp = await browser.newBrowserCDPSession();
+      try {
+        installedExtensionId = (await cdp.send("Extensions.loadUnpacked", { path: extensionPath })).id;
+      } finally {
+        await cdp.detach();
+      }
+    }
     const extensionId = await waitForExtensionId(context);
+    if (installedExtensionId && extensionId !== installedExtensionId) {
+      throw new Error("The extension shown in Chrome does not match the CDP-installed candidate.");
+    }
     const targetPage = await context.newPage();
     await targetPage.goto(server.url("/"));
     await targetPage.bringToFront();
@@ -269,6 +293,7 @@ export async function launchStoplightHarness(
 export async function launchHarnessContext(
   profileDir: string,
   extensionPath: string,
+  options: { installViaCdp?: boolean } = {},
 ): Promise<BrowserContext> {
   const browserExecutablePath = resolveBrowserExecutablePath();
   return chromium.launchPersistentContext(profileDir, {
@@ -276,9 +301,15 @@ export async function launchHarnessContext(
     // Only these isolated test contexts trust the ephemeral loopback fixture cert.
     ignoreHTTPSErrors: true,
     ...(browserExecutablePath ? { executablePath: browserExecutablePath } : {}),
+    ...(options.installViaCdp ? { ignoreDefaultArgs: ["--disable-extensions"] } : {}),
     args: [
-      `--disable-extensions-except=${extensionPath}`,
-      `--load-extension=${extensionPath}`,
+      // CDP installation creates an actual unpacked install, unlike the
+      // command-line location used by --load-extension. Only uninstall QA
+      // opts into this path; the other test contexts keep their existing args.
+      ...(options.installViaCdp ? [] : [
+        `--disable-extensions-except=${extensionPath}`,
+        `--load-extension=${extensionPath}`,
+      ]),
       "--enable-unsafe-extension-debugging",
     ],
   });
@@ -576,7 +607,7 @@ async function waitForExtensionId(context: BrowserContext): Promise<string> {
   }
 }
 
-async function readBody(req: IncomingMessage): Promise<Buffer> {
+async function readBody(req: IncomingMessage | Http2ServerRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
