@@ -1,6 +1,6 @@
 # Stoplight v0.1.0-alpha.1 verification
 
-Updated on 2026-11-06. **A1–A6: GO for the exact candidate below. A7 remains pending public publication/download verification.** This record distinguishes the compiled source, the test harness and release documentation, and public delivery.
+Updated on 2026-11-06. **A1–A7: PASS. [v0.1.0-alpha.1 is published](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1) and its anonymous public download/fresh installation are verified.** This record distinguishes the compiled source, the test harness and release documentation, and public delivery.
 
 ## Artifact identity
 
@@ -8,7 +8,7 @@ Updated on 2026-11-06. **A1–A6: GO for the exact candidate below. A7 remains p
 | --- | --- |
 | Compiled source | `48c3d6f60e7b14d1e0b908decda2b67fda2a5cac` |
 | Compiled source tree | `2678623ddc7e189b481c89e651464cb7500aed06` |
-| Release tag/source | `v0.1.0-alpha.1`; release notes and the source-equivalence asset record the resolved tag SHA. Corrected harness: `34b0e88fc5665fd54af0f9834b665c305a308d59` |
+| Release tag/source | `v0.1.0-alpha.1` → `0f18890ef68d1863cc08c6fa7010d674ff3925d8`. Corrected harness: `34b0e88fc5665fd54af0f9834b665c305a308d59` |
 | ZIP | `stoplight-v0.1.0-alpha.1.zip` |
 | ZIP SHA-256 | `0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405` |
 | ZIP bytes | 253706 |
@@ -21,13 +21,13 @@ The ZIP was packaged from the independently built source export. All ten runtime
 
 | Gate | Current result | Evidence |
 | --- | --- | --- |
-| A1 Clean source/build | PASS for compiled source | Clean export verified against all 69 tracked blobs. Formatting, locked workspace tests (24), npm ci, typecheck, unit tests (37) and production build passed. [Hosted CI](https://github.com/givtaj/stoplight/actions/runs/42193482976) passed both Rust and extension jobs at the same SHA. |
+| A1 Clean source/build | PASS for compiled source | Clean export verified against all 69 tracked blobs. Formatting, locked workspace tests (24), npm ci, typecheck, unit tests (37) and production build passed. [Compiled-source CI](https://github.com/givtaj/stoplight/actions/runs/42193482976) passed both Rust and extension jobs. [Final tag-source CI](https://github.com/givtaj/stoplight/actions/runs/42290577523) also passed; all 32 build/package inputs are identical. |
 | A2 Browser matrix/repeat | PASS | All 36 browser cases passed in 52.8 seconds with zero failures, skips or retries on the exact ZIP. First native Chrome 156 acceptance passed. Independent B2–B4 repetition passed all 13 cases in 23.5 seconds, again without failures/skips/retries. Independent native Chrome for Testing 145 acceptance also passed, including fresh Load unpacked, real toolbar-opened panel, edited/original requests, FIFO3, detach and removal. |
 | A3 Defects/dependencies | PASS within documented scope | [Targeted source review](source-review-2026-11-06.md) closed R1–R4 and arm-identity concerns. The completed exact-artifact acceptance has no unresolved blocking defect. Fresh npm audit reports zero findings. A Rust advisory scanner was unavailable; no Rust scanner pass is claimed. |
 | A4 Package/install | PASS | Independent ZIP inspection checked safe paths, no symlinks/cache directories, loadable manifest root, referenced assets/WASM, source identity and all hashes. The exact ZIP loaded through native Load unpacked in a fresh profile. |
 | A5 Public instructions/privacy | PASS | README covers ZIP install, five permissions, manual replacement/removal and feedback. Privacy copy states captured data and retention. Public repository is MIT licensed with Issues enabled. The documented disable/remove/separate-folder replacement procedure passed; preferences reset and no silent re-arm occurred. Permission and privacy wording passed independent review. |
-| A6 Decision | GO | On 2026-11-06, the coordinator records GO under the maintainer’s explicit authorization: A1–A5 passed for compiled source `48c3d6f` and ZIP `0fdd1f12…49405`. The final tag revision must retain all 32 build/package inputs and pass hosted CI before publication; the release notes record those checks. |
-| A7 Public acquisition | Not run | No alpha tag or release asset has been published. |
+| A6 Decision | GO | On 2026-11-06, the coordinator records GO under the maintainer’s explicit authorization: A1–A5 passed for compiled source `48c3d6f` and ZIP `0fdd1f12…49405`. Before publication, the final tag revision passed hosted CI and two independent comparisons confirmed all 32 build/package inputs matched the compiled source. [Source-equivalence asset](https://github.com/givtaj/stoplight/releases/download/v0.1.0-alpha.1/source-equivalence.json). |
+| A7 Public acquisition | PASS | Anonymous release/ZIP/checksum/tag-source acquisition matched the approved identities. All 13 core cases passed again against the downloaded ZIP, followed by fresh native Load unpacked, panel/core flows, detach and uninstall. [Public-delivery receipt](alpha.1-public-delivery.json). |
 
 ## Environments and boundaries
 
@@ -51,6 +51,14 @@ Both extraction inventories and the ZIP hash remained unchanged. The Mac locked 
 [Second native receipt](alpha.1-native-second.json) records PASS on Chrome for Testing 145.0.7632.6 ARM64, macOS 26.0.1. A new profile manually loaded a fresh extraction of the exact approved ZIP. Seven synthetic server receipts confirmed edited JSON/header, original Unicode XHR after changing a draft, FIFO3 originals despite a draft, detach releasing an original and ordinary traffic afterward. Held requests had zero early deliveries. Native removal, browser shutdown and fixture shutdown passed. The ZIP and all 13 extracted files remained unchanged. No source build or installation patch was required.
 
 This native repeat complements the independent 13-case B2–B4 automated repeat; their scopes remain separately recorded. The source/ZIP identity is unchanged from the full 36-case matrix and first native profile.
+
+## Public delivery — 2026-11-06
+
+The release was published at 20:43:51 UTC. [Public-delivery verification](alpha.1-public-delivery.json) completed at 20:50:52 UTC using anonymous direct HTTPS downloads, without local credentials, cookies or curl configuration. The named ZIP, published checksum and all 13 packaged files matched the approved artifact. The public annotated tag resolved to `0f18890ef68d1863cc08c6fa7010d674ff3925d8`; all 78 downloaded source files matched that exact commit, and all 32 build/package inputs matched compiled source `48c3d6f`.
+
+The downloaded tag’s harness ran all 13 B2–B4 cases against the downloaded ZIP in fresh profiles: 13 passed, zero failures/skips/retries, 19.4 seconds. A separate new Chrome for Testing 145 native profile manually installed that extraction, opened the actual toolbar panel and produced seven expected server deliveries across edited JSON, unchanged Unicode after draft edits, FIFO3 originals, detach recovery and normal traffic. Native uninstall, browser shutdown and fixture shutdown passed. Package and source hashes remained unchanged after execution.
+
+This checkpoint tests the public artifact without rebuilding it. The release tag and four assets stay fixed; this later documentation records delivery evidence. HTTPS and adjacent checksums establish consistency with the official repository; the annotated tag is unsigned, and no independent publisher-signature verification is claimed.
 
 ## Evidence provenance
 

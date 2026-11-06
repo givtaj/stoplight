@@ -12,11 +12,14 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 - Last updated: 2026-11-06.
 - Public alpha target: `v0.1.0-alpha.1`, public repository plus prebuilt ZIP. [Thresholds](docs/release/v0.1-qa-package.md#public-alpha-contract--2026-11-06) and the [selected verification receipt](docs/release/alpha.1-verification.md) separate completed evidence from remaining gates.
-- Source and release evidence are public at [givtaj/stoplight](https://github.com/givtaj/stoplight). Prepublication GO is recorded; publication and A7 verification follow final source/CI checks.
+- Source and release evidence are public at [givtaj/stoplight](https://github.com/givtaj/stoplight). [First public alpha](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1) published; all A1–A7 thresholds passed.
 - Frozen runtime `48c3d6f` passed the clean build, 24 Rust tests, 37 TypeScript tests, 36 browser cases and the first native Chrome acceptance. A separate 13-case core repeat passed. Both native profiles passed, including native installation/removal and server-verified request flows.
 - Other chats share this checkout; preserve unrelated local work and raw verification receipts.
 
 ## Done
+
+- [x] Published `v0.1.0-alpha.1` after A1–A6 passed, then verified anonymous public acquisition, 13 core cases and fresh native install/detach/uninstall under A7.
+
 
 - [x] Rust workspace created with `crates/core` and `crates/wasm`.
 - [x] Extension package scaffold created under `extension/`.
@@ -38,7 +41,7 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## In Progress
 
-- [ ] Publish `v0.1.0-alpha.1` after final source/CI checks and close anonymous public-delivery gate A7. Current evidence: [alpha verification receipt](docs/release/alpha.1-verification.md).
+No remaining first-alpha release blockers. [All A1–A7 evidence](docs/release/alpha.1-verification.md) is recorded; broader platform and store work remain below.
 
 ## Next Up
 
@@ -46,6 +49,13 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 - [ ] Prepare Chrome Web Store submission and marketing screenshots separately.
 
 ## Log
+
+### 2026-11-06 — Public alpha delivered
+
+- Published `v0.1.0-alpha.1` as a GitHub prerelease at tag source `0f18890`; final CI passed and all 32 build/package inputs matched compiled source `48c3d6f`.
+- Attached the approved ZIP, SHA256SUMS, package receipt and source-equivalence receipt. The release tag and artifact bytes remain unchanged.
+- A7 passed: anonymous public acquisition/hash/source identity, 13 core cases on the downloaded ZIP, and a fresh native profile with exact server delivery, detach, uninstall and bounded shutdown. Final receipt records limitations and separates local build/native evidence from public delivery.
+
 
 ### 2026-11-06 — Prepublication GO
 

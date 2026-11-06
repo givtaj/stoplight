@@ -1,0 +1,217 @@
+{
+  "checked_at_utc": "2026-11-06T20:50:52.876111+00:00",
+  "status": "PASS",
+  "gate": "A7 public acquisition and fresh installation",
+  "release": "v0.1.0-alpha.1",
+  "release_url": "https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1",
+  "download_url": "https://github.com/givtaj/stoplight/releases/download/v0.1.0-alpha.1/stoplight-v0.1.0-alpha.1.zip",
+  "artifact_sha256": "0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405",
+  "artifact_bytes": 253706,
+  "tag_commit": "0f18890ef68d1863cc08c6fa7010d674ff3925d8",
+  "compiled_source_commit": "48c3d6f60e7b14d1e0b908decda2b67fda2a5cac",
+  "source_archive_sha256": "adb7f2327b3c7cea90a7f1517fb33cdb73d6995c6aade99e16f4080b14f633ec",
+  "source_files_verified": 78,
+  "build_package_inputs_match": 32,
+  "acquisition": "Anonymous direct HTTPS downloads with curl config disabled, no authentication/cookies/token/netrc. Public tag object resolved independently.",
+  "publisher_identity": "Official repository HTTPS and adjacent checksum consistency; annotated tag unsigned, no independent publisher-signature verification claimed.",
+  "post_execution": {
+    "zip_unchanged": true,
+    "all13_extracted_files_unchanged": true,
+    "all78_tag_source_files_unchanged": true,
+    "browser_exited": true,
+    "fixture_exited": true,
+    "fixture_port_closed": true
+  },
+  "update_rollback": "No earlier published version exists; no automatic updater/rollback is advertised. Earlier local documented manual replacement rehearsal remains separate evidence.",
+  "limitations": [
+    "Only macOS ARM64 and Chrome for Testing145 public install executed; first local native Chrome156 proof is separate.",
+    "Chrome118 minimum and other platforms remain unverified.",
+    "No store approval, production capacity or customer acceptance claim.",
+    "Clean build/dependency findings belong to earlier exact compiled-source receipt; public check executes that same byte-identical ZIP without rebuilding."
+  ],
+  "downloads": [
+    {
+      "name": "release.html",
+      "url": "https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1",
+      "at_utc": "2026-11-06T20:44:35.670147+00:00",
+      "sha256": "674da575314f191c223b07e37785a180f974e762cac355210b3f4aa563faca93",
+      "bytes": 150430,
+      "http_status": 200
+    },
+    {
+      "name": "stoplight-v0.1.0-alpha.1.zip",
+      "url": "https://github.com/givtaj/stoplight/releases/download/v0.1.0-alpha.1/stoplight-v0.1.0-alpha.1.zip",
+      "at_utc": "2026-11-06T20:44:35.752606+00:00",
+      "sha256": "0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405",
+      "bytes": 253706,
+      "http_status": 200
+    },
+    {
+      "name": "SHA256SUMS",
+      "url": "https://github.com/givtaj/stoplight/releases/download/v0.1.0-alpha.1/SHA256SUMS",
+      "at_utc": "2026-11-06T20:44:35.650197+00:00",
+      "sha256": "d05846011a254c725f9c4455a98f97bfc0a3e772f88c8aa07daca8e31070da6b",
+      "bytes": 95,
+      "http_status": 200
+    },
+    {
+      "name": "package-receipt.json",
+      "url": "https://github.com/givtaj/stoplight/releases/download/v0.1.0-alpha.1/package-receipt.json",
+      "at_utc": "2026-11-06T20:44:35.693186+00:00",
+      "sha256": "434f43e136522403d819da6a7b942ca504c323f9cad145dbfc55dad65d0b421e",
+      "bytes": 2902,
+      "http_status": 200
+    },
+    {
+      "name": "source-equivalence.json",
+      "url": "https://github.com/givtaj/stoplight/releases/download/v0.1.0-alpha.1/source-equivalence.json",
+      "at_utc": "2026-11-06T20:44:36.161621+00:00",
+      "sha256": "6ccbbaed9073863da27aa3d066b6c4fda34a163408bd27619dcd4fca57e8c62c",
+      "bytes": 6502,
+      "http_status": 200
+    },
+    {
+      "name": "source.tar.gz",
+      "url": "https://github.com/givtaj/stoplight/archive/refs/tags/v0.1.0-alpha.1.tar.gz",
+      "at_utc": "2026-11-06T20:44:36.516018+00:00",
+      "sha256": "adb7f2327b3c7cea90a7f1517fb33cdb73d6995c6aade99e16f4080b14f633ec",
+      "bytes": 4332327,
+      "http_status": 200
+    },
+    {
+      "name": "tag-ref.json",
+      "url": "https://api.github.com/repos/givtaj/stoplight/git/ref/tags/v0.1.0-alpha.1",
+      "at_utc": "2026-11-06T20:44:36.027284+00:00",
+      "sha256": "1666799a129630cc1c7ab05d2a408828d11fa6e57614db8ef70a90ee71d5fd8f",
+      "bytes": 393,
+      "http_status": 200
+    }
+  ],
+  "automated_browser": {
+    "browser": "Chrome for Testing145.0.7632.6 arm64",
+    "scope": "13 B2\u2013B4 cases using downloaded tag harness and downloaded ZIP; per-test disposable profiles",
+    "stats": {
+      "startTime": "2026-11-06T20:45:40.623Z",
+      "duration": 19367.394,
+      "expected": 13,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "retries": 0,
+    "cases": [
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "Alpha B4 Play All sends three originals once in arrival order despite a draft",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "only the armed tab and allowed origin pause across HTTP and HTTPS",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "rejects stale target identity before explicit review and re-arm",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "Chrome pages and the extension page cannot become an accidental arm target",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "same-tab navigation invalidates the previously reviewed URL",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "JSON Fetch HTTP",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "Unicode text XHR HTTPS",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "urlencoded Fetch HTTP",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "XML XHR HTTPS",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "nonempty to empty Fetch HTTPS",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "bodyless fetch preserves zero bytes and application headers",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "bodyless xhr preserves zero bytes and application headers",
+        "result": "passed",
+        "retry": 0
+      },
+      {
+        "file": "alpha-core.spec.ts",
+        "name": "Continue Unchanged ignores edited body and header drafts",
+        "result": "passed",
+        "retry": 0
+      }
+    ]
+  },
+  "native": {
+    "status": "PASS",
+    "scope": "Fresh public-download native B1 install/toolbar panel plus representative HTTP B2\u2013B4, detach/recovery, uninstall/shutdown; full13 automated HTTP/HTTPS cases are separate.",
+    "browser": "Chrome for Testing145.0.7632.6 arm64",
+    "os": "macOS26.0.1(25A362)",
+    "profile_initially_absent": true,
+    "version": "0.1.0.1",
+    "version_name": "0.1.0-alpha.1",
+    "artifact_sha256": "0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405",
+    "checks": {
+      "manual_load_unpacked": "PASS",
+      "toolbar_opened_native_side_panel": "PASS",
+      "correct_target_idle_then_explicit_arm": "PASS",
+      "json_held_zero_delivery": "PASS",
+      "edited_json_header_and_body_exactly_once": "PASS",
+      "unicode_xhr_original_despite_draft": "PASS",
+      "fifo3_originals_in_order_despite_draft": "PASS",
+      "no_queue_delivery_while_held": "PASS",
+      "detach_releases_held_original": "PASS",
+      "normal_post_detach_traffic": "PASS",
+      "native_uninstall": "PASS",
+      "browser_exited": "PASS",
+      "fixture_exited_and_port_closed": "PASS",
+      "all13_extracted_files_unchanged": "PASS"
+    },
+    "delivery_count": 7,
+    "browser_exited": true,
+    "fixture_exited": true,
+    "fixture_port_closed": true,
+    "profile_identifier": "stoplight-public-alpha-8jsl8e8a / native-profile / Default"
+  },
+  "raw_receipt_sha256": "3022fe4a5f899cc03227c3924ca3cc79caa0c650761eb3f504b6ab54c03e5332",
+  "raw_native_receipt_sha256": "daa98e845454547df21a8d1a07ad8f5716f1621bb47f4a185dcb68889758820c",
+  "evidence_retention": "Raw receipts, server records and screenshots retained locally by maintainer; temporary signed redirect URLs and local absolute paths omitted from this public summary."
+}

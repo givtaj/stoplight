@@ -2,17 +2,17 @@
 
 Updated 2026-11-06. The distribution is a public GitHub prerelease plus a ready-to-load extension ZIP. The [alpha contract](v0.1-qa-package.md#public-alpha-contract--2026-11-06) defines the thresholds; the [verification receipt](alpha.1-verification.md) records evidence and limits.
 
-**A1–A6: GO for `v0.1.0-alpha.1`. A7: pending public download/install verification.**
+**A1–A7: PASS. [v0.1.0-alpha.1 is published and publicly verified](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1).**
 
 | Gate | Result |
 | --- | --- |
-| A1 Candidate/build | PASS: clean compiled source `48c3d6f`, 24 Rust tests, 37 TypeScript tests, typecheck, build and hosted CI. Final tag input equality and CI are checked before publication. |
+| A1 Candidate/build | PASS: clean compiled source `48c3d6f`, 24 Rust tests, 37 TypeScript tests, typecheck, build and hosted CI. Final tag input equality and [CI](https://github.com/givtaj/stoplight/actions/runs/42290577523) passed before publication. |
 | A2 Browser behavior | PASS: 36 automated cases and 13 independent core repeat cases without failures/skips/retries; native panels and request flows in two fresh profiles. |
 | A3 Defects/dependencies | PASS: source concerns resolved, exact-artifact acceptance passed, npm audit zero findings. Rust advisory scanner unavailable; no scanner pass claimed. |
 | A4 Package/install | PASS: exact ZIP/checksum/inventory, fresh native Load unpacked and removal. |
 | A5 Docs/privacy | PASS: permissions, retention, feedback, install and manual replacement/removal match observed behavior. |
-| A6 Decision | GO under the maintainer’s conditional publication authorization; final source identity and CI must be confirmed before publishing. |
-| A7 Public delivery | Pending: anonymously download the public ZIP/checksum/source, match hashes, fresh install/core flow and detach/uninstall before announcing a verified alpha. |
+| A6 Decision | GO recorded under the maintainer’s authorization after candidate acceptance; final source identity and CI confirmed before publication. |
+| A7 Public delivery | PASS: anonymous ZIP/checksum/tag source verified; 13 core cases passed on the downloaded ZIP, followed by fresh native installation/core flow, detach and uninstall. [Receipt](alpha.1-public-delivery.json). |
 
 ZIP: `stoplight-v0.1.0-alpha.1.zip`; SHA-256 `0fdd1f12e99a0c6b62df3cf6481c7c25039c124f033dae4a9ce2e2d130f49405`. Compiled source: `48c3d6f60e7b14d1e0b908decda2b67fda2a5cac`. Later tag changes contain tests/documentation only; the ZIP retains its compiled identity.
 
