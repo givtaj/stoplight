@@ -98,4 +98,5 @@ flowchart LR
 4. Matching requests are paused before send.
 5. The controller normalizes request data through the Rust/WASM core and stores session state.
 6. The side panel renders queued requests, lets the user edit headers/body, and sends continue actions.
-7. The background uses the Rust/WASM core to build the continue payload, then resumes the request through CDP.
+7. For Continue Edited, the background uses the Rust/WASM core to validate and build the edited payload, then resumes the request through CDP.
+8. For Continue Unchanged and each request released by Play All, the background sends CDP `Fetch.continueRequest` with only the request identifier. Chrome preserves the original headers and body bytes; unsent editor drafts are ignored.

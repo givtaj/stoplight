@@ -56,13 +56,28 @@ The release workflow treats both `extension/src/generated/stoplight_wasm/` and `
 2. Open Stoplight from the toolbar action.
 3. Review the arm target shown in the side panel.
 4. Click Arm Current Tab.
-5. Wait for matching API requests to appear in the paused queue.
+5. Check the Origin allowlist, adding any separate API origins as described below, then trigger a Fetch/XHR request from the page.
 6. Select a request to inspect headers and body.
 7. Edit the request if needed.
 8. Use Continue Unchanged, Continue Edited, or Play All.
 9. Detach when you are done.
 
 Continue Unchanged and Play All send the original requests; Play All does not apply unsent editor drafts. Continue Edited applies the selected request's draft. Detach ends interception and may let held original requests proceed; it is not a cancel operation.
+
+### Origin allowlist and missing requests
+
+On first use for a website, Stoplight seeds the allowlist with the page's origin. Later sessions restore the allowlist saved for that website. If the page calls an API on another origin, add that API origin to the panel's **Origin allowlist** and click **Save Allowlist** before triggering the request again.
+
+For example, a page at `https://app.example.com` calling `https://api.example.com/orders` needs the API origin in its allowlist:
+
+```text
+https://app.example.com
+https://api.example.com
+```
+
+Enter one origin per line: scheme, hostname and port when non-default, without a path or query string. Matching is exact; wildcards and automatic subdomain matching are not supported. For local apps, `http://localhost:3000` and `http://localhost:8080` are different origins, as are `localhost` and `127.0.0.1`.
+
+If no request appears, confirm that the intended tab is armed, the actual API origin is listed, and the page triggers a new Fetch/XHR request after arming. Static images, scripts and stylesheets continue automatically. The [local demo](demo/README.md) provides a controlled first test.
 
 ## Update, Recovery and Removal
 

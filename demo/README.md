@@ -24,7 +24,7 @@ The server prints the local URL, usually `http://127.0.0.1:43118`.
    `Continue Edited`.
 6. Queue three requests, confirm all pause, change one editor draft, then click `Play All`. All three originals should arrive once, in order; Play All does not apply unsent drafts.
 7. Exercise the Unicode text, urlencoded, XML and bodyless examples, checking the received bytes.
-8. Send multipart and binary examples to inspect the unchanged-only behavior, including file/PNG bytes.
+8. Send the multipart file and `application/octet-stream` examples to inspect their unchanged-only behavior and verify the received bytes.
 9. Load the static image/script/stylesheet examples and confirm they do not pollute the paused queue.
 10. Detach when finished. Held original traffic may proceed on detach; this is not a cancel action.
 

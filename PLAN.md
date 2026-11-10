@@ -16,7 +16,7 @@ Platform constraint already verified from official docs: MV3 cannot use blocking
   - `extension/`: MV3 extension app, built with Vite + TypeScript.
 - Extension manifest:
   - `manifest_version: 3`
-  - permissions: `debugger`, `sidePanel`, `storage`, `activeTab`
+  - permissions: `debugger`, `sidePanel`, `storage`, `activeTab`, `tabs`
   - `minimum_chrome_version: "118"`
   - no broad default host permissions
   - side panel page and background service worker
@@ -42,8 +42,9 @@ Platform constraint already verified from official docs: MV3 cannot use blocking
 - Matching and flow:
   - interception is single-tab, manual-session, no saved presets or automation
   - matching is an editable origin allowlist, seeded from the current tab origin
-  - per-request continue sends the latest draft for that request
-  - global play drains the paused queue in arrival order
+  - `Continue Edited` applies the selected request's latest header/body draft
+  - `Continue Unchanged` preserves the original request, even after editing its draft
+  - `Play All` drains original requests in arrival order without applying unsent drafts
   - if the debugger detaches, the UI must show the session as terminated and require a fresh arm
 - Rust/WASM public surface:
   - `normalize_request`

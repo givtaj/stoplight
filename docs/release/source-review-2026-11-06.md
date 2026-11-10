@@ -1,6 +1,8 @@
 # Alpha source and public-history review — 2026-11-06
 
-Result: no credential candidate was identified in the tracked history by this bounded review. Four correctness concerns remain release blockers in the reviewed working snapshot. This is source-review evidence, not a browser or test result, and must be reconciled with later concurrent fixes.
+**Current result:** the [targeted follow-up](#targeted-follow-up-before-candidate-freeze--2026-11-06) records source-review GO and closes R1–R4. The [final alpha verification](alpha.1-verification.md) records A1–A7 PASS. The original findings below are retained as historical evidence for the earlier working snapshot.
+
+Original result: no credential candidate was identified in the tracked history by this bounded review. Four correctness concerns remain release blockers in the reviewed working snapshot. This is source-review evidence, not a browser or test result, and must be reconciled with later concurrent fixes.
 
 ## Scope and evidence limits
 
