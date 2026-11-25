@@ -90,6 +90,7 @@ appRoot.innerHTML = `
         </div>
         <div id="detail-meta" class="detail-meta"></div>
         <div id="diff-summary" class="diff-summary">No request selected.</div>
+        <p id="preflight-hint" class="body-hint" hidden></p>
 
         <label class="editor-group">
           <span class="editor-label">Raw headers</span>
@@ -130,6 +131,7 @@ const refs = {
   queueList: query<HTMLDivElement>("#queue-list"),
   detailTitle: query<HTMLElement>("#detail-title"),
   detailMeta: query<HTMLDivElement>("#detail-meta"),
+  preflightHint: query<HTMLParagraphElement>("#preflight-hint"),
   diffSummary: query<HTMLDivElement>("#diff-summary"),
   headersEditor: query<HTMLTextAreaElement>("#headers-editor"),
   bodyEditor: query<HTMLTextAreaElement>("#body-editor"),
@@ -323,7 +325,7 @@ function render(): void {
               </div>
               <div class="queue-line queue-muted">
                 <span>${escapeHtml(request.origin ?? "unknown origin")}</span>
-                <span>${escapeHtml(request.body.kind)}</span>
+                <span>${corsPreflightMethod(request) ? "CORS preflight" : escapeHtml(request.body.kind)}</span>
               </div>
             </button>
           `;
@@ -354,6 +356,11 @@ function renderRequestPhase(): void {
 
 function renderDetail(): void {
   const request = getSelectedRequest();
+  const preflightMethod = request && corsPreflightMethod(request);
+  refs.preflightHint.hidden = !preflightMethod;
+  refs.preflightHint.textContent = preflightMethod
+    ? `CORS preflight. Choose Continue Unchanged to check whether the server allows ${preflightMethod}. If it does, look for that request in the queue.`
+    : "";
   if (!request) {
     refs.detailTitle.textContent = "Select a paused request";
     refs.detailMeta.innerHTML = `<div class="empty-state">No paused request is selected.</div>`;
@@ -393,6 +400,14 @@ function renderDetail(): void {
 
   renderDiff(request);
   renderRequestPhase();
+}
+
+function corsPreflightMethod(request: RequestRecord): string | null {
+  if (request.method !== "OPTIONS") {
+    return null;
+  }
+  const header = request.headers.find(({ name }) => name.toLowerCase() === "access-control-request-method");
+  return header?.value.trim() || null;
 }
 
 function renderDiff(request: RequestRecord): void {

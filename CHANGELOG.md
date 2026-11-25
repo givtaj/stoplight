@@ -4,6 +4,10 @@ All notable changes to this project should be recorded in this file.
 
 The format is based on Keep a Changelog, adapted for the current pre-release phase.
 
+## [0.1.0-alpha.2] - 2026-11-25
+
+- The queue labels CORS preflight requests. The request detail shows the HTTP method Chrome is asking to send and explains when to choose **Continue Unchanged**.
+
 ## [0.1.0-alpha.1] - 2026-11-06
 
 ### First public developer alpha

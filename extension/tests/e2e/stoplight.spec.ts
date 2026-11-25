@@ -2,10 +2,15 @@ import { expect, test } from "@playwright/test";
 
 import {
   armCurrentTabFromSidePanel,
+  continueEditedFromSidePanel,
   continueUnchangedFromSidePanel,
+  dispatchClick,
   launchStoplightHarness,
   playAllFromSidePanel,
   setTextAreaValue,
+  startFixtureRequest,
+  TestServer,
+  waitForFixtureRequest,
   waitForServiceWorker,
   waitForText,
 } from "./support";
@@ -120,6 +125,55 @@ test.describe("Stoplight extension release flows", () => {
       await waitForText(sidePanel, "#diff-summary", "No request selected.");
     } finally {
       await harness.close();
+    }
+  });
+
+  test("labels a CORS preflight and guides the user to the editable POST", async ({}, testInfo) => {
+    const harness = await launchStoplightHarness(testInfo);
+    const api = await TestServer.create();
+    const { server, targetPage, sidePanel } = harness;
+    const queueItem = sidePanel.locator(".queue-item");
+    const detail = sidePanel.locator(".detail-panel");
+    try {
+      await armCurrentTabFromSidePanel(sidePanel, server.origin);
+      await setTextAreaValue(sidePanel, "#allowlist-input", `${server.origin}\n${api.origin}`);
+      await dispatchClick(sidePanel, "#save-allowlist-button");
+      await waitForText(sidePanel, "#allowlist-count", "2 origins");
+      const original = '{"title":"original"}';
+      const edited = '{"title":"edited"}';
+      const key = await startFixtureRequest(targetPage, {
+        url: api.url("/api/notes"),
+        transport: "xhr",
+        headers: { "Content-Type": "application/json" },
+        body: original,
+      });
+
+      await expect(queueItem).toContainText("OPTIONS");
+      await expect(queueItem).toContainText("CORS preflight");
+      await expect(detail).toContainText("CORS preflight");
+      await expect(detail.getByText(/Continue Unchanged.*POST|POST.*Continue Unchanged/)).toBeVisible();
+      await expect(sidePanel.locator("#continue-edited-button")).toBeDisabled();
+      await continueUnchangedFromSidePanel(sidePanel);
+
+      await expect(queueItem).toContainText("POST");
+      await expect(queueItem).not.toContainText("CORS preflight");
+      await expect(detail).not.toContainText("CORS preflight");
+      await expect(sidePanel.locator("#body-editor")).toHaveValue(original);
+      expect(api.requestsSnapshot).toHaveLength(0);
+      await continueEditedFromSidePanel(sidePanel, { bodyText: edited });
+      expect(await waitForFixtureRequest(targetPage, key)).toMatchObject({ ok: true, status: 200 });
+      expect(api.requestsSnapshot).toMatchObject([{ method: "POST", path: "/api/notes", body: edited }]);
+
+      const ordinary = await startFixtureRequest(targetPage, { url: "/api/options", method: "OPTIONS" });
+      await expect(queueItem).toContainText("OPTIONS");
+      await expect(queueItem).not.toContainText("CORS preflight");
+      await expect(detail).not.toContainText("CORS preflight");
+      await continueUnchangedFromSidePanel(sidePanel);
+      expect(await waitForFixtureRequest(targetPage, ordinary)).toMatchObject({ ok: true, status: 204 });
+      await expect(queueItem).toHaveCount(0);
+    } finally {
+      await harness.close();
+      await api.close();
     }
   });
 
