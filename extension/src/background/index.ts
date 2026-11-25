@@ -4,6 +4,7 @@ import { StoplightController } from "./controller";
 
 interface PortLike {
   name: string;
+  sender?: Pick<chrome.runtime.MessageSender, "url">;
   postMessage(message: WorkerEvent): void;
   onMessage: {
     addListener(listener: (message: PanelCommand) => void): void;
@@ -16,7 +17,6 @@ interface PortLike {
 interface ControllerLike {
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   handleCommand(command: PanelCommand): Promise<void>;
-  refreshArmTarget(): Promise<void>;
   handleDebuggerEvent(
     source: chrome.debugger.Debuggee,
     method: string,
@@ -29,7 +29,7 @@ if (canStartBackground()) {
   const controllerPromise = initializeController();
 
   chrome.runtime.onConnect.addListener((port) => {
-    bindWorkerPort(port, controllerPromise);
+    bindWorkerPort(port, controllerPromise, chrome.runtime.getURL("sidepanel.html"));
   });
 
   void controllerPromise
@@ -41,16 +41,6 @@ if (canStartBackground()) {
       chrome.debugger.onDetach.addListener((source, reason) => {
         void controller.handleDebuggerDetach(source, String(reason));
       });
-
-      chrome.tabs?.onActivated?.addListener(() => {
-        void controller.refreshArmTarget();
-      });
-
-      chrome.tabs?.onUpdated?.addListener((_tabId, changeInfo, tab) => {
-        if (tab.active && (changeInfo.url || changeInfo.status === "complete")) {
-          void controller.refreshArmTarget();
-        }
-      });
     })
     .catch((error) => {
       console.error("Stoplight background bootstrap failed.", error);
@@ -60,8 +50,9 @@ if (canStartBackground()) {
 export function bindWorkerPort(
   port: PortLike,
   controllerPromise: Promise<ControllerLike>,
+  panelUrl: string,
 ): void {
-  if (port.name !== PORT_NAME) {
+  if (port.name !== PORT_NAME || port.sender?.url?.split(/[?#]/, 1)[0] !== panelUrl) {
     return;
   }
 
@@ -71,6 +62,7 @@ export function bindWorkerPort(
   const queuedMessages: PanelCommand[] = [];
 
   port.onMessage.addListener((message) => {
+    if (disconnected) return;
     if (controller) {
       void controller.handleCommand(message);
       return;
@@ -156,6 +148,27 @@ async function initializeController(): Promise<StoplightController> {
       },
     },
     tabsApi: {
+      async get(tabId) {
+        try {
+          return await chrome.tabs.get(tabId);
+        } catch (error) {
+          if (/no tab with id/i.test(toErrorMessage(error))) return undefined;
+          throw error;
+        }
+      },
+      watchActiveTab(onChange) {
+        const onUpdated = (_tabId: number, change: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {
+          if (tab.active && (change.url || change.status === "complete")) {
+            onChange();
+          }
+        };
+        chrome.tabs.onActivated.addListener(onChange);
+        chrome.tabs.onUpdated.addListener(onUpdated);
+        return () => {
+          chrome.tabs.onActivated.removeListener(onChange);
+          chrome.tabs.onUpdated.removeListener(onUpdated);
+        };
+      },
       query(queryInfo) {
         return new Promise((resolve, reject) => {
           chrome.tabs.query(queryInfo, (tabs) => {

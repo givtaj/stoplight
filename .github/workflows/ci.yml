@@ -68,3 +68,9 @@ jobs:
 
       - name: Build extension
         run: npm run build
+
+      - name: Install Chromium for the data-use checks
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify the built extension's data handling
+        run: xvfb-run -a npm run test:e2e -- data-use.spec.ts

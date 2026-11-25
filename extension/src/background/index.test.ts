@@ -28,7 +28,9 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createPort(name = PORT_NAME) {
+const panelUrl = "chrome-extension://abcdefghijklmnopabcdefghijklmnop/sidepanel.html";
+
+function createPort(name = PORT_NAME, senderUrl = panelUrl) {
   const messages = new ListenerSet<(message: PanelCommand) => void>();
   const disconnects = new ListenerSet<() => void>();
   const posted: WorkerEvent[] = [];
@@ -36,6 +38,7 @@ function createPort(name = PORT_NAME) {
   return {
     port: {
       name,
+      sender: { url: senderUrl },
       postMessage(message: WorkerEvent) {
         posted.push(message);
       },
@@ -59,7 +62,6 @@ function createPort(name = PORT_NAME) {
 type TestController = {
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   handleCommand(command: PanelCommand): Promise<void>;
-  refreshArmTarget(): Promise<void>;
   handleDebuggerEvent(): Promise<void>;
   handleDebuggerDetach(): Promise<void>;
 };
@@ -70,7 +72,7 @@ describe("bindWorkerPort", () => {
     const port = createPort();
     const handleCommand = vi.fn(async () => undefined);
 
-    bindWorkerPort(port.port, pendingController.promise);
+    bindWorkerPort(port.port, pendingController.promise, panelUrl);
     port.messages.emit({ type: "requestState" });
 
     expect(handleCommand).not.toHaveBeenCalled();
@@ -81,9 +83,6 @@ describe("bindWorkerPort", () => {
         return () => undefined;
       },
       handleCommand,
-      async refreshArmTarget() {
-        return undefined;
-      },
       async handleDebuggerEvent() {
         return undefined;
       },
@@ -102,7 +101,7 @@ describe("bindWorkerPort", () => {
     const pendingController = deferred<TestController>();
     const port = createPort();
 
-    bindWorkerPort(port.port, pendingController.promise);
+    bindWorkerPort(port.port, pendingController.promise, panelUrl);
     pendingController.reject(new Error("bootstrap failed"));
 
     await Promise.resolve();
@@ -114,5 +113,18 @@ describe("bindWorkerPort", () => {
         message: "bootstrap failed",
       },
     ]);
+  });
+
+  it("ignores a matching port name from a different page", async () => {
+    const port = createPort(PORT_NAME, "https://example.test/sidepanel.html");
+    const subscribe = vi.fn();
+    const handleCommand = vi.fn();
+    bindWorkerPort(port.port, Promise.resolve({
+      subscribe, handleCommand, handleDebuggerEvent: vi.fn(), handleDebuggerDetach: vi.fn(),
+    }), panelUrl);
+    port.messages.emit({ type: "requestState" });
+    await Promise.resolve();
+    expect(subscribe).not.toHaveBeenCalled();
+    expect(handleCommand).not.toHaveBeenCalled();
   });
 });

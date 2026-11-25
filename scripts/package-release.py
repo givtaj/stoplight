@@ -59,8 +59,8 @@ def main():
         raise SystemExit("Missing WASM asset.")
 
     def require_asset(source, reference):
-        if re.match(r"^[a-z]+:", reference) or reference.startswith("//"):
-            return
+        if re.match(r"^[a-z][a-z0-9+.-]*:", reference, re.I) or reference.startswith("//"):
+            raise SystemExit(f"Expected a packaged asset in {source}: {reference}")
         reference = reference.split("?", 1)[0].split("#", 1)[0]
         target = posixpath.normpath(reference.lstrip("/") if reference.startswith("/")
                                    else posixpath.join(posixpath.dirname(source), reference))

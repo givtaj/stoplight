@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Stoplight",
-  "version": "0.1.0.3",
-  "version_name": "0.1.0-alpha.3",
+  "version": "0.1.0.4",
+  "version_name": "0.1.0-alpha.4",
   "description": "Pause, inspect, edit, and continue API requests from the current tab.",
   "minimum_chrome_version": "118",
   "icons": {
@@ -29,6 +29,6 @@
     "default_path": "sidepanel.html"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+    "extension_pages": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; connect-src 'self'; base-uri 'none'; form-action 'none'"
   }
 }

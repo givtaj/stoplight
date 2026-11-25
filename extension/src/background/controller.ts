@@ -75,6 +75,8 @@ interface RuntimeEvaluateResponse {
 
 interface TabsApiLike {
   query(queryInfo: chrome.tabs.QueryInfo): Promise<ArmableTab[]>;
+  get(tabId: number): Promise<ArmableTab | undefined>;
+  watchActiveTab(onChange: () => void): () => void;
 }
 
 export interface ControllerDependencies {
@@ -91,6 +93,8 @@ export class StoplightController {
   private preferences: StoplightPreferences = { allowlistsByOrigin: {} };
   private readonly pendingRequests = new Map<string, PendingRequest>();
   private readonly subscribers = new Set<(event: WorkerEvent) => void>();
+  private stopWatchingActiveTab?: () => void;
+  private targetRefreshGeneration = 0;
   private readonly continuingRequests = new Map<string, number>();
   private pauseQueue: Promise<void> = Promise.resolve();
   private stateWrite: Promise<void> = Promise.resolve();
@@ -102,9 +106,19 @@ export class StoplightController {
 
   subscribe(listener: (event: WorkerEvent) => void): () => void {
     this.subscribers.add(listener);
+    if (!this.stopWatchingActiveTab) {
+      this.stopWatchingActiveTab = this.deps.tabsApi.watchActiveTab(() => {
+        if (this.subscribers.size) void this.refreshArmTarget();
+      });
+    }
     listener({ type: "state", state: this.state });
     return () => {
       this.subscribers.delete(listener);
+      if (!this.subscribers.size && this.stopWatchingActiveTab) {
+        this.stopWatchingActiveTab();
+        this.stopWatchingActiveTab = undefined;
+        this.targetRefreshGeneration += 1;
+      }
     };
   }
 
@@ -179,7 +193,11 @@ export class StoplightController {
   }
 
   async refreshArmTarget(): Promise<void> {
-    const target = await this.resolveCurrentArmTarget();
+    const generation = ++this.targetRefreshGeneration;
+    const target = await this.resolveCurrentArmTarget(generation);
+    if (generation !== this.targetRefreshGeneration) {
+      return;
+    }
     await this.transition({
       type: "updateArmTarget",
       armTarget: target.snapshot,
@@ -638,12 +656,16 @@ export class StoplightController {
     };
   }
 
-  private async resolveCurrentArmTarget(): Promise<ResolvedArmTarget> {
+  private async resolveCurrentArmTarget(refreshGeneration?: number): Promise<ResolvedArmTarget> {
     const [activeTab] = await this.deps.tabsApi.query({
       active: true,
       lastFocusedWindow: true,
     });
     const activeSnapshot = this.snapshotArmTarget(activeTab, "activeTab");
+    // A closed panel or newer refresh no longer needs a fallback tab query.
+    if (refreshGeneration !== undefined && refreshGeneration !== this.targetRefreshGeneration) {
+      return { snapshot: activeSnapshot, tab: null };
+    }
 
     if (activeSnapshot.status === "ready") {
       return { snapshot: activeSnapshot, tab: activeTab };
@@ -809,7 +831,7 @@ export class StoplightController {
       session,
       "typeof location === 'object' ? location.href : null",
     );
-    const liveTab = evaluatedUrl ? tab : (await this.deps.tabsApi.query({})).find((candidate) => candidate.id === tab.id);
+    const liveTab = evaluatedUrl ? tab : await this.deps.tabsApi.get(session.tabId);
     const url = evaluatedUrl ?? liveTab?.url ?? null;
     const title =
       tab.title ??

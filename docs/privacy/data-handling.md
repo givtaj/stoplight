@@ -4,6 +4,16 @@
 
 Stoplight is designed to keep its data handling local to the browser.
 
+## Limited Use
+
+Stoplight uses and transfers information received from Chrome APIs in accordance with the [Chrome Web Store User Data Policy](https://developer.chrome.com/docs/webstore/program-policies/policies#user-data), including its [Limited Use requirements](https://developer.chrome.com/docs/webstore/program-policies/limited-use).
+
+- Stoplight uses tab and request data solely to show the target tab and let the user pause, inspect, edit and continue its requests.
+- Stoplight does not sell user data or share it with advertisers, data brokers or analytics services. Continuing a request delivers it to the destination the website originally requested.
+- Stoplight does not use or transfer user data for credit scoring, creditworthiness or lending decisions.
+
+These commitments also apply to information derived from tab or request data.
+
 ## Data Collected and Stored
 
 Stoplight stores the following browser-local data:
@@ -33,6 +43,8 @@ Stoplight does not require its own backend service for v0.1.
 The extension works by attaching to the active tab through Chrome's Debugger API and using the DevTools Protocol `Fetch` and `Network` domains to pause matching outgoing requests. It does not proxy traffic through an external server.
 
 Stoplight also reads tab URL and title metadata so the side panel can show the website target before arming and reject known unsupported pages such as `chrome://` URLs or Stoplight's own panel. When Chrome initially hides the URL, validation occurs after the requested debugger attachment but before interception is enabled. It validates the attached target’s current URL and, when needed, its title through the debugger’s `Runtime.evaluate` command; it does not inspect other page content.
+
+In the 0.1.0-alpha.4 Store candidate, closing the last connected panel ends observation of tab changes for the target selector. An already armed session can still hold requests until the user detaches. The alpha.3 package and public alpha.2 can also refresh the latest target URL and title in session storage when the panel is closed.
 
 ## Data Sharing
 

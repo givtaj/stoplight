@@ -208,6 +208,8 @@ describe("StoplightController", () => {
     ),
   };
   const tabsApi = {
+    get: vi.fn<ControllerDependencies["tabsApi"]["get"]>(),
+    watchActiveTab: vi.fn<ControllerDependencies["tabsApi"]["watchActiveTab"]>(),
     query: vi.fn<ControllerDependencies["tabsApi"]["query"]>(async () => [
       {
         id: 12,
@@ -218,6 +220,10 @@ describe("StoplightController", () => {
   };
 
   beforeEach(() => {
+    tabsApi.get.mockReset();
+    tabsApi.get.mockResolvedValue({ id: 12, url: "https://example.com/dashboard", title: "Dashboard" });
+    tabsApi.watchActiveTab.mockReset();
+    tabsApi.watchActiveTab.mockReturnValue(() => undefined);
     debuggerApi.attach.mockReset();
     debuggerApi.attach.mockResolvedValue(undefined);
     debuggerApi.detach.mockReset();
@@ -241,6 +247,68 @@ describe("StoplightController", () => {
       ...overrides,
     });
   }
+
+  it("watches tabs only while panels are connected and discards a closed panel's in-flight lookup", async () => {
+    const stopWatching = vi.fn();
+    tabsApi.watchActiveTab.mockReturnValue(stopWatching);
+    const sessionStorage = createStorage();
+    const controller = makeController({ sessionStorage });
+    await controller.hydrate();
+    expect(tabsApi.watchActiveTab).not.toHaveBeenCalled();
+    const closeFirst = controller.subscribe(() => {});
+    const closeSecond = controller.subscribe(() => {});
+    expect(tabsApi.watchActiveTab).toHaveBeenCalledTimes(1);
+    closeFirst();
+    expect(stopWatching).not.toHaveBeenCalled();
+    const delayed = deferred<Awaited<ReturnType<typeof tabsApi.query>>>();
+    tabsApi.query.mockReturnValueOnce(delayed.promise);
+    const refresh = controller.handleCommand({ type: "requestState" });
+    closeSecond();
+    expect(stopWatching).toHaveBeenCalledTimes(1);
+    tabsApi.watchActiveTab.mock.calls[0][0]();
+    expect(tabsApi.query).toHaveBeenCalledTimes(1);
+    const closeNew = controller.subscribe(() => {});
+    expect(tabsApi.watchActiveTab).toHaveBeenCalledTimes(2);
+    await controller.handleCommand({ type: "requestState" });
+    delayed.resolve([{ id: 99, url: "chrome-extension://abcdefghijklmnopabcdefghijklmnop/sidepanel.html" }]);
+    await refresh;
+    expect(tabsApi.query).toHaveBeenCalledTimes(2);
+    expect(controller.getState().armTarget.tabId).toBe(12);
+    expect((await sessionStorage.get(SESSION_STORAGE_KEY))[SESSION_STORAGE_KEY]).toMatchObject({ armTarget: { tabId: 12 } });
+    closeNew();
+    expect(stopWatching).toHaveBeenCalledTimes(2);
+  });
+
+  it("reads only the attached tab when the debugger omits its URL", async () => {
+    const controller = makeController();
+    await controller.armActiveTab();
+    expect(tabsApi.get).toHaveBeenCalledExactlyOnceWith(12);
+    expect(tabsApi.query).toHaveBeenCalledExactlyOnceWith({ active: true, lastFocusedWindow: true });
+    expect(controller.getState().debuggerStatus).toBe("attached");
+  });
+
+  it("discards a pending tab-change result after the last panel closes", async () => {
+    const storage = createStorage();
+    const controller = makeController({ sessionStorage: storage });
+    const close = controller.subscribe(() => {});
+    const delayed = deferred<Awaited<ReturnType<typeof tabsApi.query>>>();
+    tabsApi.query.mockReturnValueOnce(delayed.promise);
+    tabsApi.watchActiveTab.mock.calls[0][0]();
+    close();
+    delayed.resolve([{ id: 44, url: "https://example.test/closed" }]);
+    await delayed.promise;
+    await Promise.resolve();
+    expect(controller.getState().armTarget.tabId).toBeNull();
+    expect(await storage.get(SESSION_STORAGE_KEY)).toEqual({});
+  });
+
+  it("detaches if the attached tab disappears before its URL can be validated", async () => {
+    tabsApi.get.mockResolvedValue(undefined);
+    const controller = makeController();
+    await controller.armActiveTab();
+    expect(debuggerApi.detach).toHaveBeenCalledExactlyOnceWith({ tabId: 12 });
+    expect(debuggerApi.sendCommand.mock.calls.some(([, method]) => method === "Fetch.enable")).toBe(false);
+  });
 
   it("rehydrates attached sessions into a detached state", async () => {
     const sessionStorage = createStorage({
@@ -543,14 +611,10 @@ describe("StoplightController", () => {
     expect(controller.getState().queue).toEqual([]);
     expect(controller.getState().requestPhase).toBe("forwarded");
     expect(controller.getState().forwardedRequestCount).toBe(2);
-    const continueCalls = debuggerApi.sendCommand.mock.calls as unknown as Array<
-      [unknown, string, { requestId: string }]
-    >;
-    expect(
-      continueCalls
-        .filter(([, method]) => method === "Fetch.continueRequest")
-        .map(([, , payload]) => payload),
-    ).toEqual([{ requestId: "request-1" }, { requestId: "request-2" }]);
+    expect(debuggerApi.sendCommand.mock.calls).toEqual([
+      [{ tabId: 12 }, "Fetch.continueRequest", { requestId: "request-1" }],
+      [{ tabId: 12 }, "Fetch.continueRequest", { requestId: "request-2" }],
+    ]);
   });
 
   it.each(["{\"status\":\"edited\"}", ""])("continues a paused request with edited headers and body %j", async (bodyText) => {
@@ -594,7 +658,7 @@ describe("StoplightController", () => {
     expect(controller.getState().queue).toEqual([]);
     expect(controller.getState().requestPhase).toBe("forwarded");
     expect(controller.getState().forwardedRequestCount).toBe(1);
-    expect(debuggerApi.sendCommand).toHaveBeenCalledWith(
+    expect(debuggerApi.sendCommand).toHaveBeenCalledExactlyOnceWith(
       { tabId: 12 },
       "Fetch.continueRequest",
       {
@@ -714,7 +778,7 @@ describe("StoplightController", () => {
     );
 
     expect(controller.getState().queue).toHaveLength(0);
-    expect(debuggerApi.sendCommand).toHaveBeenCalledWith(
+    expect(debuggerApi.sendCommand).toHaveBeenCalledExactlyOnceWith(
       { tabId: 12 },
       "Fetch.continueRequest",
       { requestId: "asset-1" },
