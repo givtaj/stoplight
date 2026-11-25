@@ -6,7 +6,7 @@ The queue labels a browser’s CORS preflight and the detail panel names the HTT
 
 The distribution is an unpacked Chrome extension. Use the versioned ZIP and its checksum for a fresh installation or a manual update from alpha.1. [Release assets](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.2) · [Install and update instructions](../../README.md#install-the-developer-alpha)
 
-The verification receipt tracks candidate checks and public delivery separately, including the tested platform and artifact identity. [Alpha.2 verification](alpha.2-verification.md)
+Published and publicly verified on 25 November 2026. The downloaded ZIP passed 18 browser checks and a fresh native installation on Chrome for Testing 145, macOS ARM64. PlayLab returned HTTP 201 with the edited title. [Alpha.2 verification](alpha.2-verification.md)
 
 ## v0.1.0-alpha.1
 

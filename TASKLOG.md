@@ -10,14 +10,13 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## Current Snapshot
 
-- Last updated: 2026-11-06.
-- Public alpha target: `v0.1.0-alpha.1`, public repository plus prebuilt ZIP. [Thresholds](docs/release/v0.1-qa-package.md#public-alpha-contract--2026-11-06) and the [selected verification receipt](docs/release/alpha.1-verification.md) separate completed evidence from remaining gates.
-- Source and release evidence are public at [givtaj/stoplight](https://github.com/givtaj/stoplight). [First public alpha](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1) published; all A1–A7 thresholds passed.
-- Frozen runtime `48c3d6f` passed the clean build, 24 Rust tests, 37 TypeScript tests, 36 browser cases and the first native Chrome acceptance. A separate 13-case core repeat passed. Both native profiles passed, including native installation/removal and server-verified request flows.
+- Last updated on 25 November 2026.
+- [v0.1.0-alpha.2](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.2) ships the CORS preflight label and follow-up method guidance. The public ZIP passed fresh installation, edited delivery on PlayLab, detach and removal. The receipt includes the verified upgrade and rollback procedure. [Alpha.2 verification](docs/release/alpha.2-verification.md)
 - Other chats share this checkout; preserve unrelated local work and raw verification receipts.
 
 ## Done
 
+- [x] Shipped alpha.2 and verified the public download and native side-panel workflow.
 - [x] Published `v0.1.0-alpha.1` after A1–A6 passed, then verified anonymous public acquisition, 13 core cases and fresh native install/detach/uninstall under A7.
 
 
@@ -41,7 +40,7 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## In Progress
 
-No remaining first-alpha release blockers. [All A1–A7 evidence](docs/release/alpha.1-verification.md) is recorded; broader platform and store work remain below.
+Alpha.2 release verification is complete. First-time human pilot feedback remains open.
 
 ## Next Up
 
@@ -49,6 +48,10 @@ No remaining first-alpha release blockers. [All A1–A7 evidence](docs/release/a
 - [ ] Prepare Chrome Web Store submission and marketing screenshots separately.
 
 ## Log
+
+### 2026-11-25 — Alpha.2 published
+
+- Tagged the compiled release source at `aad11a9`. All 37 candidate browser cases, the 17-case repeat and 18 public ZIP checks passed. Verified same-profile upgrade and rollback, and recorded the workaround for rapid replacement. [Release verification](docs/release/alpha.2-verification.md)
 
 ### 2026-11-06 — Public alpha delivered
 

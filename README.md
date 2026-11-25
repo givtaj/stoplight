@@ -83,9 +83,9 @@ If no request appears, confirm that the intended tab is armed, the actual API or
 
 ## Update, Recovery and Removal
 
-To move from alpha.1 to alpha.2, verify the new ZIP and extract it into a separate folder. Detach Stoplight, disable the old entry at `chrome://extensions`, remove it, and choose **Load unpacked** to install the new folder. Removing the old entry clears its preferences. Check the displayed version and re-enter any API origins you need before intercepting traffic again.
+To move from alpha.1 to alpha.2, verify the new ZIP and extract it into a separate folder. Detach Stoplight, disable the old entry at `chrome://extensions`, and remove it. Fully quit and reopen Chrome with the same profile, then choose **Load unpacked** to install the new folder. Removing the old entry clears its preferences. Check the displayed version and re-enter any API origins you need before intercepting traffic again.
 
-If a session or update fails, detach or disable Stoplight, then reload the test page. To return to alpha.1, use the same clean-install steps with the verified [alpha.1 ZIP](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1). Disabling clears session data and retains origin preferences. Removing the extension clears its browser-local stored data. See [privacy and retention](docs/privacy/data-handling.md).
+If Chrome reports “Debugger is not attached” after replacement, wait ten seconds, choose **Detach**, then **Arm Current Tab**. [Verified recovery](docs/release/alpha.2-verification.md#manual-replacement) To return to alpha.1, use the same clean-install steps with the verified [alpha.1 ZIP](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.1). Disabling clears session data and retains origin preferences. Removing the extension clears its browser-local stored data. See [privacy and retention](docs/privacy/data-handling.md).
 
 ## Feedback
 
