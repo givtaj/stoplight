@@ -1,13 +1,25 @@
 {
   "manifest_version": 3,
   "name": "Stoplight",
-  "version": "0.1.0.2",
-  "version_name": "0.1.0-alpha.2",
+  "version": "0.1.0.3",
+  "version_name": "0.1.0-alpha.3",
   "description": "Pause, inspect, edit, and continue API requests from the current tab.",
   "minimum_chrome_version": "118",
+  "icons": {
+    "16": "assets/stoplight-16.png",
+    "32": "assets/stoplight-32.png",
+    "48": "assets/stoplight-48.png",
+    "128": "assets/stoplight-128.png"
+  },
   "permissions": ["debugger", "sidePanel", "storage", "activeTab", "tabs"],
   "action": {
-    "default_title": "Stoplight"
+    "default_title": "Stoplight",
+    "default_icon": {
+      "16": "assets/stoplight-16.png",
+      "32": "assets/stoplight-32.png",
+      "48": "assets/stoplight-48.png",
+      "128": "assets/stoplight-128.png"
+    }
   },
   "background": {
     "service_worker": "assets/background.js",

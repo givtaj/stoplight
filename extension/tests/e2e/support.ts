@@ -383,18 +383,12 @@ export async function setTextAreaValue(
   selector: string,
   value: string,
 ): Promise<void> {
-  await page.evaluate(
-    ({ sel, nextValue }) => {
-      const element = document.querySelector(sel);
-      if (!(element instanceof HTMLTextAreaElement)) {
-        throw new Error(`Missing textarea for selector: ${sel}`);
-      }
-
-      element.value = nextValue;
-      element.dispatchEvent(new Event("input", { bubbles: true }));
-    },
-    { sel: selector, nextValue: value },
-  );
+  const editor = page.locator(selector);
+  const closedDisclosure = page.locator("details:not([open])").filter({ has: editor });
+  if (await closedDisclosure.count()) {
+    await closedDisclosure.locator("summary").click();
+  }
+  await editor.fill(value);
 }
 
 export async function armCurrentTabFromSidePanel(

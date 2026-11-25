@@ -1,10 +1,11 @@
-import { expect, test, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page, type TestInfo, type Worker } from "@playwright/test";
 
 import {
   armCurrentTabFromSidePanel,
   continueUnchangedFromSidePanel,
   launchHarnessContext,
   launchStoplightHarness,
+  setTextAreaValue,
   startFixtureRequest,
   waitForFixtureRequest,
   waitForText,
@@ -35,7 +36,7 @@ async function record(testInfo: TestInfo, name: string, evidence: unknown): Prom
 }
 
 async function saveAllowlist(panel: Page, origin: string): Promise<void> {
-  await panel.locator("#allowlist-input").fill(origin);
+  await setTextAreaValue(panel, "#allowlist-input", origin);
   await panel.locator("#save-allowlist-button").click();
   await expect.poll(async () => (await readStorage(panel)).local[PREFERENCES_KEY]).toEqual({
     allowlistsByOrigin: { [origin]: [origin] },
@@ -271,16 +272,15 @@ test.describe("Developer alpha lifecycle and retention", () => {
       await sidePanel.locator("#detach-button").click();
       expect(await waitForFixtureRequest(targetPage, held)).toMatchObject({ ok: true, status: 200 });
       await waitForText(sidePanel, "#status-pill", "detached");
-      const previousWorker = context.serviceWorkers().find((worker) =>
-        worker.url().startsWith(`chrome-extension://${extensionId}/`),
-      );
-      expect(previousWorker).toBeDefined();
+      const belongsToExtension = (worker: Worker) => worker.url().startsWith(`chrome-extension://${extensionId}/`);
+      const previousWorker = context.serviceWorkers().find(belongsToExtension)
+        ?? await context.waitForEvent("serviceworker", { predicate: belongsToExtension, timeout: 5000 });
       let previousWorkerClosed = false;
-      previousWorker!.once("close", () => { previousWorkerClosed = true; });
+      previousWorker.once("close", () => { previousWorkerClosed = true; });
       await sidePanel.evaluate(() => setTimeout(() => chrome.runtime.reload(), 0));
       await expect.poll(() => previousWorkerClosed).toBe(true);
       await expect.poll(() => context.serviceWorkers().some((worker) =>
-        worker !== previousWorker && worker.url().startsWith(`chrome-extension://${extensionId}/`),
+        worker !== previousWorker && belongsToExtension(worker),
       )).toBe(true);
       const panel = await openPanel(context, extensionId);
       await expect(panel.locator("#status-pill")).toHaveText(/^(idle|detached)$/);

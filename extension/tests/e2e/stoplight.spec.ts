@@ -4,7 +4,6 @@ import {
   armCurrentTabFromSidePanel,
   continueEditedFromSidePanel,
   continueUnchangedFromSidePanel,
-  dispatchClick,
   launchStoplightHarness,
   playAllFromSidePanel,
   setTextAreaValue,
@@ -25,9 +24,10 @@ test.describe("Stoplight extension smoke", () => {
       await expect(harness.sidePanel.locator("#arm-button")).toBeVisible();
       await expect(harness.sidePanel.locator("#arm-target-title")).toBeVisible();
       await expect(harness.sidePanel.locator("#request-phase")).toBeVisible();
-      await expect(harness.sidePanel.locator("#play-all-button")).toBeVisible();
-      await expect(harness.sidePanel.locator("#headers-editor")).toBeVisible();
-      await expect(harness.sidePanel.locator("#body-editor")).toBeVisible();
+      await expect(harness.sidePanel.locator("#play-all-button")).toBeDisabled();
+      await expect(harness.sidePanel.locator("#origin-settings > summary")).toBeVisible();
+      await expect(harness.sidePanel.locator("#allowlist-input")).toBeHidden();
+      await expect(harness.sidePanel.locator(".detail-panel")).toBeHidden();
       await waitForText(harness.sidePanel, "#status-pill", "idle");
 
       await waitForServiceWorker(
@@ -137,7 +137,7 @@ test.describe("Stoplight extension release flows", () => {
     try {
       await armCurrentTabFromSidePanel(sidePanel, server.origin);
       await setTextAreaValue(sidePanel, "#allowlist-input", `${server.origin}\n${api.origin}`);
-      await dispatchClick(sidePanel, "#save-allowlist-button");
+      await sidePanel.locator("#save-allowlist-button").click();
       await waitForText(sidePanel, "#allowlist-count", "2 origins");
       const original = '{"title":"original"}';
       const edited = '{"title":"edited"}';
@@ -174,6 +174,52 @@ test.describe("Stoplight extension release flows", () => {
     } finally {
       await harness.close();
       await api.close();
+    }
+  });
+
+  test("edits headers on the selected request from the narrow panel", async ({}, testInfo) => {
+    const harness = await launchStoplightHarness(testInfo);
+    const { server, targetPage, sidePanel } = harness;
+    try {
+      const viewport = { width: 360, height: 709 };
+      await sidePanel.setViewportSize(viewport);
+      await armCurrentTabFromSidePanel(sidePanel, server.origin);
+      const first = await startFixtureRequest(targetPage, { url: "/api/first", body: "first body" });
+      const queue = sidePanel.locator(".queue-item");
+      await expect(queue).toHaveCount(1);
+      await expect(sidePanel.getByRole("button", { name: "Continue Edited", exact: true })).toBeInViewport({ ratio: 1 });
+      const second = await startFixtureRequest(targetPage, { url: "/api/second", body: "second body" });
+      await expect(queue).toHaveCount(2);
+
+      await queue.nth(1).press("Enter");
+      await expect(sidePanel.locator("#detail-title")).toHaveText("/api/second");
+      const body = sidePanel.getByLabel("Body payload");
+      const headers = sidePanel.getByLabel("Raw headers");
+      await expect(body).toBeVisible();
+      await expect(body).toHaveValue("second body");
+      await expect(sidePanel.locator("#headers-editor")).toBeHidden();
+      await sidePanel.locator("#header-settings > summary").press("Enter");
+      await expect(headers).toBeVisible();
+      expect(await sidePanel.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+      await headers.fill((await headers.inputValue()) + "\nx-stoplight-panel: edited");
+      await expect(sidePanel.locator("#request-phase")).toHaveText("edited, held");
+
+      await queue.first().press("Enter");
+      await expect(body).toHaveValue("first body");
+      await queue.nth(1).press("Enter");
+      await expect(sidePanel.locator("#request-phase")).toHaveText("edited, held");
+      await sidePanel.getByRole("button", { name: "Continue Edited", exact: true }).click();
+      expect(await waitForFixtureRequest(targetPage, second)).toMatchObject({ ok: true, status: 200 });
+      expect(server.requestsSnapshot).toMatchObject([
+        { path: "/api/second", headers: { "x-stoplight-panel": "edited" }, body: "second body" },
+      ]);
+
+      await sidePanel.getByRole("button", { name: "Continue Unchanged", exact: true }).click();
+      expect(await waitForFixtureRequest(targetPage, first)).toMatchObject({ ok: true, status: 200 });
+      expect(server.requestsSnapshot[1].headers).not.toHaveProperty("x-stoplight-panel");
+      await expect(sidePanel.locator(".detail-panel")).toBeHidden();
+    } finally {
+      await harness.close();
     }
   });
 

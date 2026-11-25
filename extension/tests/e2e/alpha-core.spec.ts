@@ -62,7 +62,7 @@ test.describe("Alpha B2 target and origin boundaries", () => {
       await expect(sidePanel.locator(".queue-item strong")).toHaveText("/api/armed");
 
       await setTextAreaValue(sidePanel, "#allowlist-input", `${server.origin}\n${otherServer.origin}`);
-      await dispatchClick(sidePanel, "#save-allowlist-button");
+      await sidePanel.locator("#save-allowlist-button").click();
       await waitForText(sidePanel, "#allowlist-count", "2 origins");
       const nowAllowed = await startFixtureRequest(targetPage, {
         url: otherServer.url("/api/now-allowed"), transport: "xhr", headers: { "content-type": "text/plain" }, body: "HTTPS allowed original",

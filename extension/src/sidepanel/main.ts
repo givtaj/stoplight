@@ -17,96 +17,81 @@ const appRoot = root;
 
 appRoot.innerHTML = `
   <div class="shell">
-    <header class="hero">
-      <div>
-        <p class="eyebrow">Manual API interception</p>
+    <header class="masthead">
+      <div class="brand">
+        <img class="signal-mark" src="assets/stoplight-32.png" srcset="assets/stoplight-48.png 1.5x, assets/stoplight-128.png 4x" width="32" height="32" alt="">
         <h1>Stoplight</h1>
       </div>
-      <div class="hero-actions">
-        <button id="arm-button" class="button button-primary">Arm Current Tab</button>
-        <button id="detach-button" class="button button-secondary">Detach</button>
-      </div>
+      <span id="status-pill" class="status-pill idle" role="status" aria-label="Debugger status">idle</span>
     </header>
 
-    <section class="status-card">
-      <div class="status-head">
-        <div>
-          <p class="section-label">Session</p>
-          <h2 id="tab-title">No tab armed</h2>
-        </div>
-        <span id="status-pill" class="status-pill idle">idle</span>
-      </div>
-      <p id="tab-url" class="tab-url">Click the toolbar action on the page you want to inspect, then arm the tab.</p>
-      <div class="target-card">
-        <div>
-          <span class="metric-label">Arm target</span>
-          <strong id="arm-target-title" class="target-title">No target selected</strong>
-          <p id="arm-target-url" class="target-url">Open an http:// or https:// tab before arming Stoplight.</p>
-        </div>
+    <section class="target-panel" aria-labelledby="target-label">
+      <div class="section-top">
+        <h2 id="target-label" class="section-label">Arm target</h2>
         <span id="arm-target-status" class="target-status none">none</span>
       </div>
-      <div id="banner" class="banner hidden"></div>
-      <div class="status-grid">
-        <div>
-          <span class="metric-label">Paused now</span>
-          <strong id="paused-count" class="metric-value">0</strong>
-        </div>
-        <div>
-          <span class="metric-label">Request phase</span>
-          <strong id="request-phase" class="metric-value">idle</strong>
-        </div>
-        <div>
-          <span class="metric-label">Allowlist</span>
-          <strong id="allowlist-count" class="metric-value">0 origins</strong>
-        </div>
+      <h3 id="arm-target-title" class="target-title">No target selected</h3>
+      <p id="arm-target-url" class="target-url"></p>
+      <div id="session-context" class="session-context" hidden>
+        <span class="section-label">Session tab</span>
+        <strong id="tab-title">No tab armed</strong>
+        <span id="tab-url"></span>
       </div>
-      <p id="phase-detail" class="phase-detail">No target is armed.</p>
-      <label class="editor-group">
-        <span class="editor-label">Origin allowlist</span>
-        <textarea id="allowlist-input" class="allowlist-input" spellcheck="false"></textarea>
-      </label>
-      <button id="save-allowlist-button" class="button button-secondary">Save Allowlist</button>
+      <div class="target-actions">
+        <button id="arm-button" class="button primary"><span class="arm-icon" aria-hidden="true"></span>Arm Current Tab</button>
+        <button id="detach-button" class="button secondary">Detach</button>
+      </div>
+      <div id="banner" class="banner hidden" role="alert"></div>
+      <details id="origin-settings" class="disclosure origin-settings">
+        <summary>Origin allowlist <span id="allowlist-count" class="origin-count">0 origins</span></summary>
+        <div class="settings-fields">
+          <label for="allowlist-input">Allowed origins</label>
+          <textarea id="allowlist-input" aria-describedby="allowlist-help" rows="2" spellcheck="false"></textarea>
+          <p id="allowlist-help" class="hint">Enter one origin per line. Include the API origin if it differs from the page.</p>
+          <button id="save-allowlist-button" class="button secondary">Save Allowlist</button>
+        </div>
+      </details>
     </section>
 
     <main class="workspace">
-      <section class="panel queue-panel">
+      <section class="panel queue-panel" aria-labelledby="queue-heading">
         <div class="panel-head">
-          <div>
-            <p class="section-label">Paused requests</p>
-            <h3>Queue</h3>
+          <div class="heading-group">
+            <h2 id="queue-heading">Queue</h2>
+            <span id="paused-count" class="count">0</span>
           </div>
-          <button id="play-all-button" class="button button-ghost">Play All Originals</button>
+          <button id="play-all-button" class="button batch">Play All Originals</button>
         </div>
-        <p class="body-hint">Play All forwards each original request unchanged, in arrival order. Editor drafts are not applied.</p>
+        <div class="phase">
+          <span id="request-phase" class="phase-label">idle</span>
+          <span id="phase-detail"></span>
+        </div>
         <div id="queue-list" class="queue-list"></div>
+        <p id="queue-hint" class="hint queue-hint" hidden>Play All sends originals in order and discards drafts.</p>
       </section>
 
-      <section class="panel detail-panel">
-        <div class="panel-head">
-          <div>
-            <p class="section-label">Request detail</p>
-            <h3 id="detail-title">Select a paused request</h3>
-          </div>
+      <section class="panel detail-panel" aria-label="Request detail" hidden>
+        <div class="detail-head">
+          <p class="section-label">Request detail</p>
+          <h2 id="detail-title">Select a paused request</h2>
+          <div id="detail-meta" class="detail-meta"></div>
         </div>
-        <div id="detail-meta" class="detail-meta"></div>
-        <div id="diff-summary" class="diff-summary">No request selected.</div>
-        <p id="preflight-hint" class="body-hint" hidden></p>
-
-        <label class="editor-group">
-          <span class="editor-label">Raw headers</span>
-          <textarea id="headers-editor" class="code-editor" spellcheck="false"></textarea>
-        </label>
-
-        <label class="editor-group">
-          <span class="editor-label">Body payload</span>
-          <textarea id="body-editor" class="code-editor code-editor-body" spellcheck="false"></textarea>
-        </label>
-
-        <p id="body-hint" class="body-hint"></p>
-
+        <p id="preflight-hint" class="notice" hidden></p>
+        <div class="editors">
+          <div id="payload-field">
+            <label class="editor-caption" for="body-editor">Body payload</label>
+            <textarea id="body-editor" aria-describedby="body-hint" rows="3" spellcheck="false"></textarea>
+          </div>
+          <p id="body-hint" class="hint"></p>
+          <details id="header-settings" class="disclosure header-settings">
+            <summary>Raw headers</summary>
+            <textarea id="headers-editor" aria-label="Raw headers" rows="4" spellcheck="false"></textarea>
+          </details>
+          <p id="diff-summary" class="diff-summary">No request selected.</p>
+        </div>
         <div class="detail-actions">
-          <button id="continue-unchanged-button" class="button button-secondary">Continue Unchanged</button>
-          <button id="continue-edited-button" class="button button-primary">Continue Edited</button>
+          <button id="continue-unchanged-button" class="button secondary">Continue Unchanged</button>
+          <button id="continue-edited-button" class="button primary">Continue Edited</button>
         </div>
       </section>
     </main>
@@ -118,6 +103,10 @@ const refs = {
   detachButton: query<HTMLButtonElement>("#detach-button"),
   saveAllowlistButton: query<HTMLButtonElement>("#save-allowlist-button"),
   playAllButton: query<HTMLButtonElement>("#play-all-button"),
+  sessionContext: query<HTMLElement>("#session-context"),
+  detailPanel: query<HTMLElement>(".detail-panel"),
+  queueHint: query<HTMLElement>("#queue-hint"),
+  payloadField: query<HTMLElement>("#payload-field"),
   tabTitle: query<HTMLElement>("#tab-title"),
   tabUrl: query<HTMLElement>("#tab-url"),
   armTargetTitle: query<HTMLElement>("#arm-target-title"),
@@ -132,7 +121,7 @@ const refs = {
   detailTitle: query<HTMLElement>("#detail-title"),
   detailMeta: query<HTMLDivElement>("#detail-meta"),
   preflightHint: query<HTMLParagraphElement>("#preflight-hint"),
-  diffSummary: query<HTMLDivElement>("#diff-summary"),
+  diffSummary: query<HTMLParagraphElement>("#diff-summary"),
   headersEditor: query<HTMLTextAreaElement>("#headers-editor"),
   bodyEditor: query<HTMLTextAreaElement>("#body-editor"),
   bodyHint: query<HTMLParagraphElement>("#body-hint"),
@@ -215,6 +204,7 @@ refs.headersEditor.addEventListener("input", () => {
   }
   ensureDraft(request).headerText = refs.headersEditor.value;
   renderDiff(request);
+  renderRequestPhase();
 });
 
 refs.bodyEditor.addEventListener("input", () => {
@@ -224,6 +214,7 @@ refs.bodyEditor.addEventListener("input", () => {
   }
   ensureDraft(request).bodyText = refs.bodyEditor.value;
   renderDiff(request);
+  renderRequestPhase();
 });
 window.addEventListener("focus", () => send({ type: "requestState" }));
 document.addEventListener("visibilitychange", () => {
@@ -300,7 +291,11 @@ function render(): void {
     "Click the toolbar action on the page you want to inspect, then arm the tab.";
   refs.pausedCount.textContent = String(state.queue.length);
   renderArmTarget();
-  renderRequestPhase();
+  const sameTarget = state.tabId === state.armTarget.tabId && state.tabUrl === state.armTarget.tabUrl;
+  const attachedHere = state.debuggerStatus === "attached" && sameTarget;
+  refs.sessionContext.hidden = !state.tabId || sameTarget;
+  refs.armButton.classList.toggle("primary", !attachedHere);
+  refs.armButton.classList.toggle("secondary", attachedHere);
   refs.allowlistCount.textContent = `${state.originAllowlist.length} origin${state.originAllowlist.length === 1 ? "" : "s"}`;
   refs.statusPill.textContent = state.debuggerStatus;
   refs.statusPill.className = `status-pill ${state.debuggerStatus}`;
@@ -313,25 +308,34 @@ function render(): void {
     refs.allowlistInput.value = state.originAllowlist.join("\n");
   }
 
+  const focusedId = document.activeElement instanceof HTMLButtonElement
+    ? document.activeElement.dataset.requestId
+    : undefined;
+  refs.queueHint.hidden = state.queue.length === 0;
   refs.queueList.innerHTML = state.queue.length
     ? state.queue
         .map((request) => {
           const selected = request.id === selectedRequestId;
+          const preflight = Boolean(corsPreflightMethod(request));
+          const kind = request.body.kind === "empty" && request.body.captureStatus === "unavailable"
+            ? "No preview"
+            : request.body.kind;
           return `
-            <button class="queue-item ${selected ? "selected" : ""}" data-request-id="${request.id}">
-              <div class="queue-line">
-                <span class="method-pill">${request.method}</span>
+            <button class="queue-item" aria-pressed="${selected}" data-request-id="${escapeHtml(request.id)}">
+              <span class="method-pill">${escapeHtml(request.method)}</span>
+              <span class="queue-description">
                 <strong>${escapeHtml(requestPathLabel(request.url))}</strong>
-              </div>
-              <div class="queue-line queue-muted">
-                <span>${escapeHtml(request.origin ?? "unknown origin")}</span>
-                <span>${corsPreflightMethod(request) ? "CORS preflight" : escapeHtml(request.body.kind)}</span>
-              </div>
+                <span class="queue-origin">${escapeHtml(request.origin ?? "Unknown origin")}</span>
+              </span>
+              <span class="kind${preflight ? " preflight" : ""}">${preflight ? "CORS preflight" : escapeHtml(kind)}</span>
             </button>
           `;
         })
         .join("")
-    : `<div class="empty-state">Paused API calls will appear here once the active tab is armed.</div>`;
+    : `<div class="empty-state"><span class="empty-glyph" aria-hidden="true"></span><span>No paused requests</span></div>`;
+  if (focusedId) {
+    refs.queueList.querySelector<HTMLButtonElement>(`[data-request-id="${CSS.escape(focusedId)}"]`)?.focus({ preventScroll: true });
+  }
 
   renderDetail();
   renderRequestPhase();
@@ -350,12 +354,13 @@ function renderArmTarget(): void {
 function renderRequestPhase(): void {
   const phase = requestPhaseView();
   refs.requestPhase.textContent = phase.label;
-  refs.requestPhase.className = `metric-value phase-${phase.tone}`;
+  refs.requestPhase.className = `phase-label phase-${phase.tone}`;
   refs.phaseDetail.textContent = phase.detail;
 }
 
 function renderDetail(): void {
   const request = getSelectedRequest();
+  refs.detailPanel.hidden = !request;
   const preflightMethod = request && corsPreflightMethod(request);
   refs.preflightHint.hidden = !preflightMethod;
   refs.preflightHint.textContent = preflightMethod
@@ -377,29 +382,35 @@ function renderDetail(): void {
 
   const draft = ensureDraft(request);
   refs.detailTitle.textContent = requestPathLabel(request.url);
+  const { body } = request;
+  const unavailable = body.captureStatus === "unavailable";
+  const unavailableEmpty = unavailable && body.kind === "empty";
   refs.detailMeta.innerHTML = `
     <span class="meta-pill">${escapeHtml(request.method)}</span>
     <span class="meta-pill">${escapeHtml(request.resourceType)}</span>
-    <span class="meta-pill">${escapeHtml(request.body.kind)}</span>
-    <span class="meta-pill">${escapeHtml(request.origin ?? "unknown origin")}</span>
+    ${unavailableEmpty ? "" : `<span class="meta-pill">${escapeHtml(body.kind)}</span>`}
+    <span class="detail-origin">${escapeHtml(request.origin ?? "Unknown origin")}</span>
   `;
-  refs.headersEditor.disabled = !request.body.editable;
-  refs.bodyEditor.disabled = !request.body.editable;
+  refs.payloadField.hidden = !body.editable && !body.text && (unavailable || Boolean(preflightMethod));
+  refs.headersEditor.disabled = !body.editable;
+  refs.bodyEditor.disabled = !body.editable;
   refs.headersEditor.value = draft.headerText;
   refs.bodyEditor.value = draft.bodyText;
-  refs.bodyHint.textContent = request.body.editable
-    ? "Editable textual body. Continue Edited will send the latest header and body draft."
-    : request.body.reason ?? "This body is inspect-only and can only continue unchanged.";
-  if (request.body.captureStatus === "unavailable") {
-    refs.bodyHint.textContent += " Body preview is unavailable; the empty editor does not mean the original request was empty.";
-  } else if (request.body.captureStatus === "truncated") {
-    refs.bodyHint.textContent += " Body preview is truncated; only the original request can be forwarded unchanged.";
+  refs.bodyHint.textContent = body.editable ? "" : body.reason ?? "This body can only continue unchanged.";
+  if (unavailableEmpty) {
+    refs.bodyHint.textContent = "Body preview unavailable. Continue Unchanged forwards the original request.";
+  } else if (unavailable) {
+    refs.bodyHint.textContent += " Body preview unavailable.";
+  } else if (body.captureStatus === "truncated") {
+    refs.bodyHint.textContent += " Body preview is truncated.";
   }
+  refs.bodyHint.hidden = body.editable || (refs.payloadField.hidden && !unavailable);
   refs.continueUnchangedButton.disabled = false;
-  refs.continueEditedButton.disabled = !request.body.editable;
+  refs.continueUnchangedButton.classList.toggle("primary", !body.editable);
+  refs.continueUnchangedButton.classList.toggle("secondary", body.editable);
+  refs.continueEditedButton.disabled = !body.editable;
 
   renderDiff(request);
-  renderRequestPhase();
 }
 
 function corsPreflightMethod(request: RequestRecord): string | null {
@@ -417,8 +428,8 @@ function renderDiff(request: RequestRecord): void {
     return;
   }
 
+  refs.diffSummary.classList.toggle("changed", Boolean(diff?.hasChanges));
   refs.diffSummary.textContent = diff?.summary ?? "Could not compute the request diff.";
-  renderRequestPhase();
 }
 
 function computeDraftDiff(request: RequestRecord): RequestDiff | null {
@@ -468,7 +479,7 @@ function requestPhaseView(): { label: string; detail: string; tone: string } {
       return {
         label: "edited, held",
         detail:
-          "Local edits are still held in the browser queue. Continue Edited forwards the draft; verify receipt independently when that matters.",
+          "Your edits are still held. Continue Edited sends this draft.",
         tone: "warn",
       };
     }
@@ -478,7 +489,7 @@ function requestPhaseView(): { label: string; detail: string; tone: string } {
     return {
       label: "held",
       detail:
-        "A matching request is intercepted and has not been continued from Stoplight's queue.",
+        "Select a request to inspect or edit it before sending.",
       tone: "warn",
     };
   }
@@ -493,14 +504,14 @@ function requestPhaseView(): { label: string; detail: string; tone: string } {
     case "waiting":
       return {
         label: "waiting",
-        detail: "Debugger is attached and waiting for a matching XHR or fetch request.",
+        detail: "Trigger a Fetch or XHR request from the armed tab.",
         tone: "ok",
       };
     case "forwarded":
       return {
         label: "forwarded",
         detail:
-          "Stoplight forwarded the queued request. This does not prove remote receipt or durable persistence.",
+          "Sent to the network. This does not prove remote receipt.",
         tone: "ok",
       };
     case "detached":

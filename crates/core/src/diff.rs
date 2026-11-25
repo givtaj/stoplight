@@ -51,21 +51,24 @@ pub fn compute_diff(input: ComputeDiffInput) -> RequestDiff {
         Vec::new()
     };
 
-    let summary = if headers_changed && body_changed {
-        format!(
-            "{} header changes, body {} chars",
-            changed_headers.len(),
-            body_delta(input.original_body.text.len(), input.edited_body.text.len())
-        )
-    } else if headers_changed {
-        format!("{} header changes", changed_headers.len())
-    } else if body_changed {
-        format!(
-            "body {} chars",
-            body_delta(input.original_body.text.len(), input.edited_body.text.len())
-        )
-    } else {
+    let mut changes = Vec::new();
+    if headers_changed {
+        changes.push(match changed_headers.len() {
+            0 => "Header order changed".into(),
+            1 => "1 header changed".into(),
+            count => format!("{count} headers changed"),
+        });
+    }
+    if body_changed {
+        changes.push(body_change_summary(
+            &input.original_body.text,
+            &input.edited_body.text,
+        ));
+    }
+    let summary = if changes.is_empty() {
         "No changes".into()
+    } else {
+        changes.join(" · ")
     };
 
     RequestDiff {
@@ -87,12 +90,17 @@ fn normalize_headers(headers: &[HeaderDraft]) -> Vec<HeaderDraft> {
         .collect()
 }
 
-fn body_delta(original: usize, edited: usize) -> String {
-    match edited.cmp(&original) {
-        std::cmp::Ordering::Greater => format!("+{}", edited - original),
-        std::cmp::Ordering::Less => format!("-{}", original - edited),
-        std::cmp::Ordering::Equal => "0".into(),
+fn body_change_summary(original: &str, edited: &str) -> String {
+    let delta = edited.chars().count() as isize - original.chars().count() as isize;
+    if delta == 0 {
+        return "Body edited".into();
     }
+    let unit = if delta.unsigned_abs() == 1 {
+        "character"
+    } else {
+        "characters"
+    };
+    format!("Body edited ({delta:+} {unit})")
 }
 
 #[cfg(test)]
@@ -137,5 +145,24 @@ mod tests {
         assert!(diff.headers_changed);
         assert!(diff.body_changed);
         assert_eq!(diff.changed_headers, vec!["x-debug".to_string()]);
+        assert_eq!(diff.summary, "1 header changed · Body edited");
+    }
+
+    #[test]
+    fn describes_body_edits_using_unicode_character_counts() {
+        for (before, after, summary) in [
+            ("a", "🟢", "Body edited"),
+            ("é", "é🟢", "Body edited (+1 character)"),
+            ("🟢東京", "🟢", "Body edited (-2 characters)"),
+            ("same", "same", "No changes"),
+        ] {
+            let diff = compute_diff(ComputeDiffInput {
+                original_headers: Vec::new(),
+                edited_headers: Vec::new(),
+                original_body: body(before),
+                edited_body: body(after),
+            });
+            assert_eq!(diff.summary, summary);
+        }
     }
 }
