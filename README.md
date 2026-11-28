@@ -1,12 +1,19 @@
-# Stoplight
+# Stoplight — Chrome request editor
 
-Stoplight lets you pause an outgoing API request in a Chrome tab, inspect its headers and body, and choose what the website sends.
+Pause an outgoing Fetch or XHR request in one Chrome tab. Inspect its headers and body in the side panel, edit a JSON field, and continue the request.
 
-🚦 **[Add Stoplight to Chrome](https://chromewebstore.google.com/detail/stoplight/hmiegichaapkmpplleopipdbpdfafhpk)** · [First Chrome Web Store release, v0.1.0-alpha.4](docs/release/release-status.md#first-chrome-web-store-release)
+**[Add Stoplight to Chrome](https://chromewebstore.google.com/detail/stoplight/hmiegichaapkmpplleopipdbpdfafhpk)** · [Try it with a note](#try-it-with-a-note) · [Alpha.4 release notes](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.4)
+
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/screenshots/alpha.4/readme-demo-mobile.png">
+  <img src="docs/screenshots/alpha.4/readme-demo.png" alt="The TestYard form says “Red light — original.” Stoplight holds the POST while its title is changed to “Green light — edited in Stoplight.” The edited title appears in TestYard after reload.">
+</picture>
+
+[Full screenshot of the paused edit](docs/screenshots/alpha.4/01-held-edit.jpg) · [Saved note after reload](docs/screenshots/alpha.4/02-after-reload.jpg)
 
 Chrome shows a debugger notice when you arm a tab. Stoplight uses Chrome’s Debugger API to hold requests until you continue them or detach. [Permissions](docs/store/chrome-web-store-copy.md#permission-explanation) · [Data handling](docs/privacy/data-handling.md)
 
-### Try it with a note
+## Try it with a note
 
 1. Open [TestYard Notes](https://testyard.onrender.com/practice/notes) and choose **Quick login (demo account)** if prompted.
 2. Open Stoplight from Chrome’s Extensions menu. Check that **Arm Target** shows TestYard, then choose **Arm Current Tab**.
@@ -16,16 +23,16 @@ Chrome shows a debugger notice when you arm a tab. Stoplight uses Chrome’s Deb
 
 ## Install the Developer Alpha
 
-For the older unpacked developer alpha, use the [v0.1.0-alpha.2 GitHub release](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.2). This ZIP uses manual updates.
+The alpha.4 GitHub prerelease includes the ZIP uploaded to the Chrome Web Store. Use it for an unpacked installation with manual updates.
 
-1. Download `stoplight-v0.1.0-alpha.2.zip` and `SHA256SUMS` from the release's **Assets**. The GitHub source archives are for building, not installing.
+1. Download `stoplight-v0.1.0-alpha.4.zip` and `SHA256SUMS` from the [alpha.4 release assets](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.4). The GitHub source archives are for building, not installing.
 2. On macOS, run `shasum -a 256 -c SHA256SUMS` in the download directory and require an `OK` result before loading the extension.
 3. Extract the ZIP into a permanent folder. No Rust, Node.js or npm is needed for this installation.
 4. Open `chrome://extensions`, enable **Developer mode**, and choose **Load unpacked**.
 5. Select the extracted folder containing `manifest.json`. Keep that folder in place while the extension is installed.
-6. Confirm Stoplight displays `0.1.0-alpha.2` (numeric manifest version `0.1.0.2`). Pin Stoplight in Chrome's Extensions menu for easy access.
+6. Confirm Stoplight displays `0.1.0-alpha.4` (numeric manifest version `0.1.0.4`). Pin Stoplight in Chrome's Extensions menu for easy access.
 
-The release receipt records the tested Chrome version and operating system. Chrome 118 is the API minimum; other versions and operating systems are unverified unless listed in that receipt.
+Chrome 118 is the API minimum. The [store-installed test](docs/release/release-status.md#first-chrome-web-store-release) records the Chrome version and operating system used for alpha.4. To reproduce the earlier alpha.2 tests, follow the same install steps with the [alpha.2 ZIP and checksum](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.2).
 
 ## Build Prerequisites
 
