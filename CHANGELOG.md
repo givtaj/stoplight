@@ -4,6 +4,16 @@ All notable changes to this project should be recorded in this file.
 
 The format is based on Keep a Changelog, adapted for the current pre-release phase.
 
+## [0.1.0-alpha.4] - 2026-11-28
+
+### First Chrome Web Store release
+
+- Stoplight now installs directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/stoplight/hmiegichaapkmpplleopipdbpdfafhpk). In a fresh store installation, changing a note’s title in a paused request changed the title TestYard saved and displayed after reload. [Release notes and screenshots](docs/release/release-status.md#first-chrome-web-store-release)
+
+- The target selector now follows tab changes only while a Stoplight panel is connected. The extension's content security policy restricts its own network connections to packaged resources.
+- The side panel brings the held request, body editor and Continue actions together at narrow widths. Origin settings and raw headers expand on demand. Stoplight now has a matching panel and toolbar icon.
+- Equal-length body replacements now read **Body edited**. An unavailable body preview has an explicit message in place of a blank editor.
+
 ## [0.1.0-alpha.2] - 2026-11-25
 
 - The queue labels CORS preflight requests. The request detail shows the HTTP method Chrome is asking to send and explains when to choose **Continue Unchanged**.

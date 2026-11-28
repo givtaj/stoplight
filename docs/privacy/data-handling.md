@@ -44,7 +44,7 @@ The extension works by attaching to the active tab through Chrome's Debugger API
 
 Stoplight also reads tab URL and title metadata so the side panel can show the website target before arming and reject known unsupported pages such as `chrome://` URLs or Stoplight's own panel. When Chrome initially hides the URL, validation occurs after the requested debugger attachment but before interception is enabled. It validates the attached target’s current URL and, when needed, its title through the debugger’s `Runtime.evaluate` command; it does not inspect other page content.
 
-In the 0.1.0-alpha.4 Store candidate, closing the last connected panel ends observation of tab changes for the target selector. An already armed session can still hold requests until the user detaches. The alpha.3 package and public alpha.2 can also refresh the latest target URL and title in session storage when the panel is closed.
+In the 0.1.0-alpha.4 Chrome Web Store release, closing the last connected panel ends observation of tab changes for the target selector. An already armed session can still hold requests until the user detaches. The alpha.3 package and public alpha.2 can also refresh the latest target URL and title in session storage when the panel is closed.
 
 ## Data Sharing
 
