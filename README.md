@@ -1,12 +1,22 @@
 # Stoplight
 
-Stoplight is a Chrome MV3 extension for manually pausing, inspecting, editing, and continuing API requests from one active tab at a time.
+Stoplight lets you pause an outgoing API request in a Chrome tab, inspect its headers and body, and choose what the website sends.
 
-It uses a thin TypeScript extension shell for Chrome APIs and UI, with a Rust/WASM core for request normalization, body handling, diffing, and session-state reduction.
+🚦 **[Add Stoplight to Chrome](https://chromewebstore.google.com/detail/stoplight/hmiegichaapkmpplleopipdbpdfafhpk)** · [First Chrome Web Store release, v0.1.0-alpha.4](docs/release/release-status.md#first-chrome-web-store-release)
+
+Chrome shows a debugger notice when you arm a tab. Stoplight uses Chrome’s Debugger API to hold requests until you continue them or detach. [Permissions](docs/store/chrome-web-store-copy.md#permission-explanation) · [Data handling](docs/privacy/data-handling.md)
+
+### Try it with a note
+
+1. Open [TestYard Notes](https://testyard.onrender.com/practice/notes) and choose **Quick login (demo account)** if prompted.
+2. Open Stoplight from Chrome’s Extensions menu. Check that **Arm Target** shows TestYard, then choose **Arm Current Tab**.
+3. Enter `Red light` in the website’s **Title** field and choose **Add note**. Stoplight holds the outgoing `POST /api/notes`.
+4. In Stoplight, select the POST, change only the JSON `title` to `Green light`, and choose **Continue Edited**. Select the follow-up `GET /api/notes` and choose **Continue Unchanged** to let the site refresh its list.
+5. Choose **Detach** and reload TestYard. The saved note reads **Green light**. [See the store-installed test](docs/release/release-status.md#first-chrome-web-store-release)
 
 ## Install the Developer Alpha
 
-Install the unpacked Chrome extension from the [v0.1.0-alpha.2 release](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.2). Updates are manual. The [release status](docs/release/release-status.md) links to verification results for each version.
+For the older unpacked developer alpha, use the [v0.1.0-alpha.2 GitHub release](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.2). This ZIP uses manual updates.
 
 1. Download `stoplight-v0.1.0-alpha.2.zip` and `SHA256SUMS` from the release's **Assets**. The GitHub source archives are for building, not installing.
 2. On macOS, run `shasum -a 256 -c SHA256SUMS` in the download directory and require an `OK` result before loading the extension.
@@ -17,8 +27,6 @@ Install the unpacked Chrome extension from the [v0.1.0-alpha.2 release](https://
 
 The release receipt records the tested Chrome version and operating system. Chrome 118 is the API minimum; other versions and operating systems are unverified unless listed in that receipt.
 
-Chrome shows a debugger warning because Stoplight uses the Debugger API to pause and continue requests in the tab you arm. Review the [five permission explanations](docs/store/chrome-web-store-copy.md#permission-explanation) and [data handling](docs/privacy/data-handling.md) before arming a session.
-
 ## Build Prerequisites
 
 - Chrome 118 or newer.
@@ -27,6 +35,8 @@ Chrome shows a debugger warning because Stoplight uses the Debugger API to pause
 - `wasm-pack` available on `PATH`.
 
 ## Build
+
+The Manifest V3 extension uses a TypeScript shell for Chrome APIs and the UI, with a Rust/WASM core for request normalization, body handling, diffing, and session-state reduction.
 
 From the repository root:
 
@@ -81,7 +91,7 @@ Chrome may send an `OPTIONS` request before a cross-origin API call. When the qu
 
 If no request appears, confirm that the intended tab is armed, the actual API origin is listed, and the page triggers a new Fetch/XHR request after arming. Static images, scripts and stylesheets continue automatically. The [local demo](demo/README.md) provides a controlled first test.
 
-## Update, Recovery and Removal
+## Unpacked Alpha Updates, Recovery and Removal
 
 To move from alpha.1 to alpha.2, verify the new ZIP and extract it into a separate folder. Detach Stoplight, disable the old entry at `chrome://extensions`, and remove it. Fully quit and reopen Chrome with the same profile, then choose **Load unpacked** to install the new folder. Removing the old entry clears its preferences. Check the displayed version and re-enter any API origins you need before intercepting traffic again.
 

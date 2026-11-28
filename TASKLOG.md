@@ -10,7 +10,8 @@ Lightweight implementation tracker for the work defined in [PLAN.md](./PLAN.md).
 
 ## Current Snapshot
 
-- Last updated on 25 November 2026.
+- Last updated on 28 November 2026.
+- The first [Chrome Web Store release](docs/release/release-status.md#first-chrome-web-store-release) is live at `0.1.0-alpha.4`. A fresh store install passed the edited-note test on TestYard.
 - [v0.1.0-alpha.2](https://github.com/givtaj/stoplight/releases/tag/v0.1.0-alpha.2) ships the CORS preflight label and follow-up method guidance. The public ZIP passed fresh installation, edited delivery on PlayLab, detach and removal. The receipt includes the verified upgrade and rollback procedure. [Alpha.2 verification](docs/release/alpha.2-verification.md)
 - Other chats share this checkout; preserve unrelated local work and raw verification receipts.
 
@@ -45,9 +46,14 @@ Alpha.2 release verification is complete. First-time human pilot feedback remain
 ## Next Up
 
 - [ ] Broaden browser/OS coverage after the first developer alpha.
-- [ ] Prepare Chrome Web Store submission and marketing screenshots separately.
+- [x] Publish the approved alpha.4 listing and verify installation from the Chrome Web Store.
 
 ## Log
+
+### 2026-11-28 — First Chrome Web Store release
+
+- Published the approved alpha.4 package manually. The public listing displayed `0.1.0-alpha.4` and **Add to Chrome**. Verified an edited note persisted after reloading TestYard with Stoplight detached. [Store release and test evidence](docs/release/release-status.md#first-chrome-web-store-release)
+- The uploaded ZIP (`0.1.0.4` in the manifest) came from source commit `dce6ab14e6edba0de3e31efb56585c2222717855`. Its SHA-256 was `ca93707363337557cce83086879c95b05e5c444f8b8169ae05a156c7612d13c7`.
 
 ### 2026-11-25 — Alpha.2 published
 
